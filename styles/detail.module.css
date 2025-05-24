@@ -1,0 +1,32 @@
+@import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@600&display=swap');
+
+.div {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-family: Pretendard, sans-serif;
+  background-color: #cadbec;
+}
+
+.wrapper {
+  width: 393px;
+  height: 852px;
+  position: relative;
+  padding: 20px;
+  background: #fff;
+  overflow-y: auto;
+}
+
+.div1, .div2 {
+  font-weight: bold;
+  margin-bottom: 16px;
+}
+
+.adr {
+  background: #233;
+  color: #fff;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 12px;
+}
