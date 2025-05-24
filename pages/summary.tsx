@@ -8,14 +8,13 @@ export default function Summary() {
   };
 
   return (
-    <div className="min-h-screen bg-[#CDEFFF] flex items-center justify-center">
-      <div
-        className="w-[393px] h-[852px] bg-cover bg-center p-6 flex flex-col items-center justify-center text-white text-center"
-        style={{
-          backgroundImage: 'url(/weather/column.png)',
-          borderRadius: '1rem', // rounded-xl
-        }}
-      >
+    <div
+      className="w-[393px] h-[852px] bg-cover bg-center flex flex-col items-center justify-center text-white text-center"
+      style={{
+        backgroundImage: 'url(/weather/column.png)',
+      }}
+    >
+      <div className="px-6 py-10 flex flex-col items-center justify-center w-full h-full">
         <h2 className="text-xl text-black font-bold mb-2">2025년 05월 24일</h2>
         <p className="mb-4 text-black text-sm">
           오늘은 당신의 투자에 긍정적인 바람이 불고 있어요.

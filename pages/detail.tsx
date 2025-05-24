@@ -13,34 +13,35 @@ export default function Detail() {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-[#D8ECFF] flex items-center justify-center">
-      <div className="w-[393px] h-[852px] bg-[#D8ECFF] p-6 flex flex-col justify-between">
-        <div>
-          <h2 className="text-lg font-heading font-bold mb-4">
-            종목별 세부 현황은 아래와 같아요
-          </h2>
-          <div className="space-y-3">
-            {stocks.map((stock) => (
-              <div
-                key={stock.name}
-                className="bg-white p-4 rounded-lg flex justify-between items-center shadow-sm"
-              >
-                <span className="flex items-center gap-2">
-                  <span>{stock.emoji}</span>
-                  <span>{stock.name}</span>
-                </span>
-                <span className={`${stock.color} font-semibold text-sm`}>
-                  {stock.signal}({stock.percent})
-                </span>
-              </div>
-            ))}
-          </div>
-          <p className="text-xs text-gray-500 mt-4">
-            ※ 해당 수치는 예시이며, 실제 수치와는 무관합니다.
-          </p>
+    <div className="min-h-screen bg-white flex justify-center">
+      <div className="w-[393px] min-h-screen bg-white p-6">
+        <h2 className="text-lg font-heading font-bold mb-4">
+          종목별 세부 현황은 아래와 같아요
+        </h2>
+
+        <div className="space-y-3">
+          {stocks.map((stock) => (
+            <div
+              key={stock.name}
+              className="bg-white p-4 rounded-lg flex justify-between items-center shadow-sm border border-[#E30547]"
+            >
+              <span className="flex items-center gap-2">
+                <span>{stock.emoji}</span>
+                <span>{stock.name}</span>
+              </span>
+              <span className={`${stock.color} font-semibold text-sm`}>
+                {stock.signal}({stock.percent})
+              </span>
+            </div>
+          ))}
         </div>
+
+        <p className="text-xs text-gray-500 mt-4">
+          ※ 해당 수치는 예시이며, 실제 수치와는 무관합니다.
+        </p>
+
         <button
-          className="w-full mt-6 py-2 bg-white text-sm rounded-full font-medium text-gray-700 border border-gray-300 hover:bg-gray-100 transition"
+          className="w-full mt-6 py-2 rounded-full text-sm font-medium bg-[#E30547] text-white hover:opacity-90 transition"
           onClick={() => router.push('/')}
         >
           홈으로 돌아가기
