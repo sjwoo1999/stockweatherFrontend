@@ -1,37 +1,51 @@
-import { NextPage } from 'next';
-import { Layout } from '@/components/Layout';
+'use client';
+import { useRouter } from 'next/router';
 
-const Detail: NextPage = () => {
+const stocks = [
+  { name: '삼성전자', emoji: '🔵', signal: '강력 매수', percent: '92%', color: 'text-blue-700' },
+  { name: '네이버', emoji: '🔷', signal: '매수', percent: '82%', color: 'text-blue-500' },
+  { name: '엔비디아', emoji: '⚪', signal: '중립', percent: '74%', color: 'text-gray-500' },
+  { name: '테슬라', emoji: '🟠', signal: '비중 축소', percent: '65%', color: 'text-orange-500' },
+  { name: '넷이즈', emoji: '🔴', signal: '매도', percent: '58%', color: 'text-red-500' },
+];
+
+export default function Detail() {
+  const router = useRouter();
+
   return (
-    <Layout>
-      <div className="h-full w-full p-6 bg-blue-100 overflow-y-auto font-body">
-        <h2 className="text-lg font-bold mb-4 font-heading text-brand-dark">
-          종목별 세부 현황은 아래와 같아요
-        </h2>
-        <div className="space-y-3 mb-8">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-white p-4 rounded-xl text-center shadow">
-              넷이즈(ADR)
-            </div>
-          ))}
+    <div className="min-h-screen bg-[#D8ECFF] flex items-center justify-center">
+      <div className="w-[393px] h-[852px] bg-[#D8ECFF] p-6 flex flex-col justify-between">
+        <div>
+          <h2 className="text-lg font-heading font-bold mb-4">
+            종목별 세부 현황은 아래와 같아요
+          </h2>
+          <div className="space-y-3">
+            {stocks.map((stock) => (
+              <div
+                key={stock.name}
+                className="bg-white p-4 rounded-lg flex justify-between items-center shadow-sm"
+              >
+                <span className="flex items-center gap-2">
+                  <span>{stock.emoji}</span>
+                  <span>{stock.name}</span>
+                </span>
+                <span className={`${stock.color} font-semibold text-sm`}>
+                  {stock.signal}({stock.percent})
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-gray-500 mt-4">
+            ※ 해당 수치는 예시이며, 실제 수치와는 무관합니다.
+          </p>
         </div>
-        <h3 className="text-lg font-bold mb-3 font-heading text-brand-dark">
-          관심 종목 세부 현황은 아래와 같아요
-        </h3>
-        <div className="bg-white p-4 rounded-xl shadow-inner space-y-2">
-          {[...Array(8)].map((_, i) => (
-            <div
-              key={i}
-              className="flex justify-between items-center border-b border-gray-200 pb-2 last:border-0"
-            >
-              <span className="text-sm text-gray-700">로고 삼성전자</span>
-              <span className="text-xs font-bold text-red-600">매수(89%)</span>
-            </div>
-          ))}
-        </div>
+        <button
+          className="w-full mt-6 py-2 bg-white text-sm rounded-full font-medium text-gray-700 border border-gray-300 hover:bg-gray-100 transition"
+          onClick={() => router.push('/')}
+        >
+          홈으로 돌아가기
+        </button>
       </div>
-    </Layout>
+    </div>
   );
-};
-
-export default Detail;
+}

@@ -1,29 +1,29 @@
-import { NextPage } from 'next';
 import { useRouter } from 'next/router';
-import { Layout } from '@/components/Layout';
-import { Button } from '@/components/Button';
 
-const Summary: NextPage = () => {
+export default function Summary() {
   const router = useRouter();
 
-  return (
-    <Layout>
-      <div className="h-full w-full bg-gradient-to-b from-sky-200 to-blue-300 flex flex-col justify-center items-center text-center px-6 font-body">
-        <h1 className="text-2xl font-extrabold text-white drop-shadow mb-2">2025년 xx월 xx일</h1>
-        <p className="text-lg font-semibold text-white drop-shadow mb-6">사용자님의 날씨는..</p>
-        <div className="text-white drop-shadow text-base space-y-2">
-          <p>포트폴리오 X</p>
-          <p>내가 관심 있는 종목</p>
-          <p>장기투자 할 종목에 대해서</p>
-        </div>
-        <div className="mt-10">
-          <Button onClick={() => router.push('/detail')} variant="ghost">
-            상세 정보 확인하기
-          </Button>
-        </div>
-      </div>
-    </Layout>
-  );
-};
+  const handleDetail = () => {
+    router.push('/detail');
+  };
 
-export default Summary;
+  return (
+    <div className="min-h-screen bg-[#CDEFFF] flex items-center justify-center">
+      <div className="w-[393px] h-[852px] bg-[#CDEFFF] flex flex-col items-center justify-center p-6 text-white text-center">
+        <h2 className="text-xl text-black font-bold mb-2">2025년 05월 24일</h2>
+        <p className="mb-4 text-black text-sm">오늘은 당신의 투자에 긍정적인 바람이 불고 있어요.</p>
+        <ul className="text-sm space-y-2 mb-6">
+          <li className="text-black">✅ 삼성전자: AI 메모리 수요 증가</li>
+          <li className="text-black">📊 네이버: 커머스+콘텐츠 동시 성장</li>
+          <li className="text-black">⚡ 엔비디아: AI 반도체 호조세 지속</li>
+        </ul>
+        <button
+          onClick={handleDetail}
+          className="bg-white text-black px-6 py-2 rounded-full text-sm font-semibold"
+        >
+          자세한 종목 정보 확인하기
+        </button>
+      </div>
+    </div>
+  );
+}

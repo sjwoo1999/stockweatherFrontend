@@ -1,28 +1,30 @@
-import { NextPage } from 'next';
+import { FaSearch, FaArrowRight } from 'react-icons/fa';
 import { useRouter } from 'next/router';
-import { Layout } from '@/components/Layout';
-import { Button } from '@/components/Button';
-import { motion } from 'framer-motion';
-import { fadeInUp } from '@/libs/animations';
 
-const Home: NextPage = () => {
+export default function Home() {
   const router = useRouter();
 
-  return (
-    <Layout>
-      <div className="h-full flex flex-col justify-center items-center text-center p-6 font-body">
-        <motion.h1 {...fadeInUp} className="text-xl font-bold font-heading text-brand-dark mb-6">
-          어떤 종목에 대한 정보를 원하시나요?
-        </motion.h1>
-        <motion.div {...fadeInUp} className="flex items-center gap-2 w-full bg-card rounded-full px-4 py-3">
-          <span className="text-sm text-gray-600">🔍 검색</span>
-          <div className="ml-auto">
-            <Button onClick={() => router.push('/search')}>➡</Button>
-          </div>
-        </motion.div>
-      </div>
-    </Layout>
-  );
-};
+  const handleSearch = () => {
+    router.push('/search');
+  };
 
-export default Home;
+  return (
+    <div className="min-h-screen bg-[#FFF5F5] flex items-center justify-center">
+      <div className="w-[393px] h-[852px] bg-white p-6 rounded-xl shadow-md flex flex-col justify-center">
+        <h1 className="text-center font-heading text-base font-bold mb-6">
+          어떤 종목에 대한 정보를 원하시나요?
+        </h1>
+        <div className="flex items-center bg-surface-subtle px-4 py-3 rounded-full shadow-sm">
+          <FaSearch className="text-gray-500 mr-2" />
+          <span className="text-black flex-1 text-sm">삼성전자</span>
+          <button
+            onClick={handleSearch}
+            className="ml-2 bg-brand-primary text-white rounded-full w-8 h-8 flex items-center justify-center"
+          >
+            <FaArrowRight size={12} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
