@@ -16,7 +16,10 @@ export default function Search() {
         <h2 className="text-lg font-heading font-bold mb-1">
           <span className="text-black font-extrabold">삼성전자</span>에 대한 검색 결과예요.
         </h2>
-        <p className="text-base font-semibold mt-2 mb-2">오늘의 날씨는?</p>
+        <p className="text-sm font-medium mt-2 mb-2 leading-snug">
+          파란 하늘처럼, 삼성전자에도 긍정적인 기류가 감돌고 있어요.
+        </p>
+
 
         <div
           className="w-full h-28 rounded-xl bg-cover bg-center mb-6"
