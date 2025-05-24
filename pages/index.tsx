@@ -1,26 +1,27 @@
-import type { NextPage } from 'next';
+import { NextPage } from 'next';
 import { useRouter } from 'next/router';
-import styles from '../styles/home.module.css';
+import { Layout } from '@/components/Layout';
+import { Button } from '@/components/Button';
+import { motion } from 'framer-motion';
+import { fadeInUp } from '@/libs/animations';
 
 const Home: NextPage = () => {
   const router = useRouter();
 
   return (
-    <div className={styles.div}>
-      <div className={styles.wrapper}>
-        <div className={styles.statusBar}>
-          <div>[Icons]</div>
-          <div>[Signal | WiFi | Battery]</div>
-        </div>
-
-        <b className={styles.b}>어떤 종목에 대한 정보를 원하시나요?</b>
-
-        <div className={styles.searchFieldWithRoundButton}>
-          <div className={styles.searchFieldAtom}>검색</div>
-          <button onClick={() => router.push('/search')}>🔍</button>
-        </div>
+    <Layout>
+      <div className="h-full flex flex-col justify-center items-center text-center p-6 font-body">
+        <motion.h1 {...fadeInUp} className="text-xl font-bold font-heading text-brand-dark mb-6">
+          어떤 종목에 대한 정보를 원하시나요?
+        </motion.h1>
+        <motion.div {...fadeInUp} className="flex items-center gap-2 w-full bg-card rounded-full px-4 py-3">
+          <span className="text-sm text-gray-600">🔍 검색</span>
+          <div className="ml-auto">
+            <Button onClick={() => router.push('/search')}>➡</Button>
+          </div>
+        </motion.div>
       </div>
-    </div>
+    </Layout>
   );
 };
 
