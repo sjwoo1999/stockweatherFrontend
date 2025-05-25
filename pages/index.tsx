@@ -5,7 +5,7 @@ export default function Home() {
   const router = useRouter();
 
   const handleSearch = () => {
-    router.push('/search');
+    router.push('/loading'); // 변경: search → loading
   };
 
   return (
