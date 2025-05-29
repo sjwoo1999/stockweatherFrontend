@@ -1,4 +1,4 @@
-// stockweather-frontend/src/pages/login-success.tsx (재확인)
+// stockweather-frontend/src/pages/login-success.tsx
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/router';
 
@@ -22,12 +22,8 @@ function LoginSuccessPage() {
         console.log('LoginSuccess: JWT Token stored in localStorage.');
         console.log('LoginSuccess: Verifying localStorage AFTER set:', localStorage.getItem('jwtToken'));
 
-        // ★ 중요: setTimeout을 사용하여 약간의 지연을 주면
-        // localStorage 동기화 및 Next.js 렌더링 사이클에 도움이 될 수 있습니다.
-        // 50ms 정도면 충분할 것입니다. (필요시 조절)
-        setTimeout(() => {
-          router.replace('/dashboard');
-        }, 50); // 50ms 지연
+        // setTimeout 제거, 바로 리다이렉트
+        router.replace('/dashboard'); 
 
       } catch (e) {
         console.error('LoginSuccess: Error setting localStorage:', e);

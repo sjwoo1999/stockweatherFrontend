@@ -1,18 +1,11 @@
 // stockweather-frontend/src/pages/login.tsx
-import React from 'react';
+import React, { useEffect } from 'react'; // <--- useEffect를 임포트
 import Head from 'next/head';
-import Image, { ImageLoaderProps } from 'next/image'; // ImageLoaderProps도 임포트
+import Image, { ImageLoaderProps } from 'next/image';
+import { useRouter } from 'next/router'; // <--- useRouter를 임포트
 
-// 커스텀 이미지 로더 함수 정의
+// 커스텀 이미지 로더 함수 정의 (기존 코드와 동일)
 const kakaoImageLoader = ({ src, width, quality }: ImageLoaderProps) => {
-  // src는 Image 컴포넌트의 src prop에서 온 "/images/kakao_login_..."
-  // width는 Next.js가 이미지 최적화를 위해 요청하는 너비
-  // quality는 Next.js가 요청하는 이미지 품질 (기본값 75)
-
-  // Next.js는 Image 컴포넌트의 width prop을 기반으로 srcSet을 자동으로 생성하므로,
-  // 여기서는 각 이미지 파일의 실제 크기를 고려하여 적절한 URL을 반환해야 합니다.
-
-  // 실제 파일 이름을 기준으로 조건 분기
   if (src.includes('kakao_login_183x45.png')) {
     return `/images/kakao_login_183x45.png`;
   }
@@ -25,14 +18,30 @@ const kakaoImageLoader = ({ src, width, quality }: ImageLoaderProps) => {
   if (src.includes('kakao_login_600x90.png')) {
     return `/images/kakao_login_600x90.png`;
   }
-
-  // 기본값 또는 에러 처리
-  return src; // Fallback to original src if no specific match
+  return src;
 };
 
 function LoginPage() {
+    const router = useRouter();
+
+    useEffect(() => {
+      if (typeof window !== 'undefined') {
+        console.group('LoginPage useEffect 시작'); // 로그를 그룹화하여 가독성 높임
+        console.log('1. LoginPage: 페이지 로드 시점');
+        const token = localStorage.getItem('jwtToken');
+        console.log('2. LoginPage: localStorage 토큰 확인 결과:', token ? '존재함 (값: ' + token.substring(0, 30) + '...)' : '없음'); // ★ 로그아웃 후에는 이곳에 '없음' 또는 'null'이 출력되어야 합니다!
+
+        if (token) {
+          console.log('3. LoginPage: 토큰이 존재하여 대시보드로 리다이렉트합니다.');
+          router.replace('/dashboard');
+        } else {
+          console.log('3. LoginPage: 토큰이 없어 로그인 페이지에 머무릅니다.');
+        }
+        console.groupEnd(); // 로그 그룹 종료
+      }
+    }, [router]);
+
   const handleKakaoLogin = () => {
-    // 백엔드의 카카오 인증 시작 엔드포인트로 사용자를 리다이렉트
     window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/kakao`;
   };
 
@@ -110,17 +119,12 @@ function LoginPage() {
           onMouseOut={(e) => (e.currentTarget.style.transform = 'scale(1)')}
         >
           <Image
-            // loader prop을 사용하여 커스텀 로더 함수 적용
             loader={kakaoImageLoader}
-            src="/images/kakao_login_300x45.png" // 기본 src (loader 함수에서 처리)
+            src="/images/kakao_login_300x45.png"
             alt="카카오 로그인"
-            // srcSet과 sizes는 Image 컴포넌트의 props가 아니므로 제거하거나,
-            // sizes prop을 통해 Next.js가 srcSet을 생성하도록 합니다.
-            // 여기서는 loader를 사용했으므로 sizes도 제거해도 됩니다.
-            // 하지만 반응형 동작을 위해 sizes를 남겨두는 것도 좋습니다.
-            sizes="(max-width: 320px) 183px, (max-width: 480px) 300px, 300px" // Next.js가 srcSet을 만들 때 참고
-            width={300} // 기본 너비
-            height={45}  // 기본 높이
+            sizes="(max-width: 320px) 183px, (max-width: 480px) 300px, 300px"
+            width={300}
+            height={45}
             style={{
               display: 'block',
               maxWidth: '100%',

@@ -1,79 +1,69 @@
 // stockweather-frontend/src/components/ProtectedRoute.tsx
-import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import { useEffect, useState } from 'react';
+import React from 'react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const router = useRouter();
-  const [loading, setLoading] = useState(true); // 로딩 상태: 토큰 확인 중일 때 true
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // 인증 상태: 토큰이 유효하면 true
+  const [isClient, setIsClient] = useState(false); // 클라이언트 측 렌더링 확인
 
   useEffect(() => {
-    // 이 useEffect는 컴포넌트가 클라이언트 측에서 마운트될 때 한 번 실행됩니다.
-    // (Next.js의 SSR 특성상 localStorage는 window 객체처럼 클라이언트에서만 접근 가능)
-    const checkAuth = () => {
-      let token: string | null = null;
-      try {
-        // localStorage는 클라이언트 환경에서만 접근 가능하므로, window 객체 확인.
-        // 하지만 Next.js의 useEffect는 클라이언트에서만 실행되므로, 이 조건은 일반적으로 필요 없음.
-        // 다만, 안전하게 `window`가 정의되었는지 확인하는 것은 좋은 습관.
-        if (typeof window !== 'undefined') {
-          token = localStorage.getItem('jwtToken');
-        }
-      } catch (e) {
-        console.error('ProtectedRoute: Error accessing localStorage:', e);
-        // localStorage 접근 실패 시, 인증되지 않은 것으로 간주
-        setIsAuthenticated(false);
-        setLoading(false);
-        router.replace('/login');
-        return;
-      }
+    setIsClient(true); // 컴포넌트가 클라이언트에서 마운트되었음을 표시
+  }, []);
 
-      console.log('ProtectedRoute: Checking for token. Current token:', token); // ★ 4. ProtectedRoute가 읽은 토큰 값 확인
-
-      if (token) {
-        // TODO: 실제 프로젝트에서는 여기서 토큰 유효성 (만료 여부 등)을 백엔드에 요청하여 검증하는 로직이 추가되어야 합니다.
-        // 현재는 토큰 존재 여부만으로 인증된 것으로 간주합니다.
-        setIsAuthenticated(true);
-      } else {
-        console.log('ProtectedRoute: No JWT token found. Redirecting to login.'); // ★ 5. 토큰이 없을 때 이 로그가 찍힘
-        setIsAuthenticated(false); // 인증 실패
-        router.replace('/login'); // 로그인 페이지로 리다이렉트
-      }
-      setLoading(false); // 토큰 확인이 완료되면 로딩 상태 해제
-    };
-
-    // router.isReady는 Next.js 라우터의 쿼리 파라미터 등이 준비되었음을 의미합니다.
-    // 여기서는 localStorage 접근이 주 목적이지만, Next.js의 하이드레이션 문제 방지를 위해
-    // router가 준비될 때까지 기다리는 것이 더 견고합니다.
-    if (router.isReady) {
-      checkAuth();
-    } else {
-      setLoading(true); // router가 준비되지 않은 상태에서는 계속 로딩 상태 유지
+  useEffect(() => {
+    if (!isClient) {
+      // 서버 측 렌더링 시에는 localStorage에 접근 불가
+      return;
     }
 
-  }, [router]); // router 객체에 의존성을 두어 라우터 변경 시 재실행 (거의 없음)
+    const token = localStorage.getItem('jwtToken');
+    console.log('ProtectedRoute: Checking for token. Current token:', token ? token : '없음');
 
-  // 로딩 중일 때는 로딩 UI를 보여줍니다.
-  if (loading) {
-    return (
-      <div style={{ padding: '20px', textAlign: 'center', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-        <h2>인증 확인 중...</h2>
-        <p>잠시만 기다려 주세요.</p>
-        {/* 선택적으로 로딩 스피너 등을 여기에 추가할 수 있습니다 */}
-      </div>
-    );
+    // 특정 경로에서만 보호 로직을 적용
+    const publicPaths = ['/', '/login', '/login-success', '/api']; // 공개 경로 목록
+
+    // 현재 경로가 보호되어야 하는 경로인지 확인
+    const isProtectedPath = !publicPaths.includes(router.pathname) && !router.pathname.startsWith('/api');
+
+    if (isProtectedPath) {
+      if (!token) {
+        // 토큰이 없으면 로그인 페이지로 리다이렉트
+        console.log('ProtectedRoute: 토큰 없음. 로그인 페이지로 리다이렉트:', router.pathname);
+        router.replace('/login');
+      }
+      // 토큰이 있으면 그대로 자식 컴포넌트 렌더링 (이상이 없으므로 아무것도 하지 않음)
+    } else {
+      // 공개 경로이지만 토큰이 있고, 현재 경로가 login 또는 login-success인 경우 대시보드로 리다이렉트
+      // 이 부분이 "로그아웃 -> 로그인 페이지 -> 대시보드" 흐름의 원인이 될 수 있습니다.
+      // 즉, 로그아웃 시 토큰이 제대로 지워지지 않았다면, login 페이지에서도 바로 대시보드로 갑니다.
+      if (token && (router.pathname === '/login' || router.pathname === '/login-success')) {
+        console.log('ProtectedRoute: 공개 경로이나 토큰 존재. 대시보드로 리다이렉트:', router.pathname);
+        router.replace('/dashboard');
+      }
+    }
+  }, [router, isClient]); // router와 isClient 변화에 반응
+
+  // 클라이언트 측이 아니거나, 아직 토큰 검증 중이면 null 반환하여 깜빡임 방지
+  // 또는 로딩 스피너 등을 표시할 수 있습니다.
+  if (!isClient) {
+    return null; // SSR 시에는 children을 렌더링하지 않음
   }
 
-  // 인증되지 않았다면 (이미 /login으로 리다이렉트되었거나 리다이렉트될 예정이므로) 아무것도 렌더링하지 않습니다.
-  if (!isAuthenticated) {
-    return null;
+  // 보호된 경로이고 토큰이 없으면 리다이렉트 중이므로 children을 렌더링하지 않음
+  const token = localStorage.getItem('jwtToken');
+  const publicPaths = ['/', '/login', '/login-success', '/api'];
+  const isProtectedPath = !publicPaths.includes(router.pathname) && !router.pathname.startsWith('/api');
+  const isRedirecting = (isProtectedPath && !token) || (token && (router.pathname === '/login' || router.pathname === '/login-success'));
+
+  if (isRedirecting) {
+    return null; // 리다이렉트 중에는 아무것도 렌더링하지 않음
   }
 
-  // 인증이 완료되었고 유효하다면, 자식 컴포넌트 (보호된 페이지의 내용)를 렌더링합니다.
   return <>{children}</>;
 };
 

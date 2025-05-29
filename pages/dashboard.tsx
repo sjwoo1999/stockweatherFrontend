@@ -1,90 +1,122 @@
 // stockweather-frontend/src/pages/dashboard.tsx
 import React, { useEffect, useState } from 'react';
-import axiosInstance from '../api/axiosInstance'; // 설정된 Axios 인스턴스 임포트
-import axios from 'axios'; // Axios 에러 타입 체크를 위해 기본 axios 임포트
-import { useRouter } from 'next/router'; // Next.js useRouter 훅
-import Head from 'next/head'; // Next.js Head 컴포넌트
+import axiosInstance from '../api/axiosInstance';
+import axios from 'axios';
+import { useRouter } from 'next/router';
+import Head from 'next/head';
 
-// 사용자 정보의 타입 정의 (백엔드 User 엔티티와 일치해야 합니다)
 interface User {
   id: number;
-  kakaoId: number;
-  email: string;
+  kakaoId: string;
+  email?: string;
   nickname: string;
-  profileImage?: string; // 프로필 이미지는 선택 사항
+  profileImage?: string;
   createdAt: string;
   updatedAt: string;
-  // 필요한 다른 필드들을 여기에 추가
 }
 
 function DashboardPage() {
-  const [user, setUser] = useState<User | null>(null); // 사용자 정보 상태
-  const [loading, setLoading] = useState<boolean>(true); // 로딩 상태
-  const [error, setError] = useState<string | null>(null); // 에러 메시지 상태
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
+    console.log('Dashboard: useEffect 시작'); // ★ 추가
+
+    if (typeof window === 'undefined') {
+      console.log('Dashboard: 서버 측 렌더링 (SSR) 환경, API 호출 건너뜜.'); // ★ 추가
+      setLoading(false);
+      return;
+    }
+
+    const token = localStorage.getItem('jwtToken');
+    console.log('Dashboard: localStorage에서 토큰 확인:', token ? '존재함' : '없음'); // ★ 추가
+
+    if (!token) {
+      console.log('Dashboard: JWT 토큰이 없어 /users/me 호출을 건너뛰고 로그인 페이지로 리다이렉트합니다.');
+      setLoading(false);
+      router.replace('/login');
+      return;
+    }
+
     const fetchUserProfile = async () => {
+      console.log('Dashboard: fetchUserProfile 함수 실행 시작.'); // ★ 추가
       try {
-        setLoading(true); // 로딩 시작
-        setError(null); // 이전 에러 초기화
-        // 백엔드의 보호된 '/users/me' 엔드포인트 호출
-        // 이 요청에는 axiosInstance 인터셉터에 의해 자동으로 JWT 토큰이 포함됩니다.
+        setLoading(true);
+        setError(null);
+        console.log('Dashboard: /users/me API 호출 시작...'); // ★ 추가
         const response = await axiosInstance.get<User>('/users/me');
-        setUser(response.data); // 응답으로 받은 사용자 정보 저장
+        console.log('Dashboard: /users/me API 응답 성공:', response.data); // ★ 추가
+        setUser(response.data);
       } catch (err) {
-        // Axios 인터셉터가 401 에러를 처리하므로, 여기서는 다른 종류의 에러만 다룹니다.
-        if (axios.isAxiosError(err)) { // Axios 에러인지 확인
-          if (err.response?.status !== 401) { // 401이 아닌 다른 HTTP 에러인 경우
-            setError(err.message); // 에러 메시지 설정
+        console.error('Dashboard: fetchUserProfile 에러 발생:', err); // ★ 추가
+        if (axios.isAxiosError(err)) {
+          console.error("fetchUserProfile 에러 상세:", err.response?.status, err.message, err.response?.data); // ★ 추가
+          if (err.response?.status === 401) {
+            console.log("401 에러 발생: 토큰 만료 또는 유효하지 않음. 강제 로그아웃 처리.");
+            handleLogout();
+          } else {
+            setError(err.message);
           }
         } else {
           setError('사용자 정보를 불러오는 중 알 수 없는 오류가 발생했습니다.');
         }
       } finally {
-        setLoading(false); // 로딩 종료
+        setLoading(false);
+        console.log('Dashboard: fetchUserProfile 함수 실행 완료. 로딩 상태:', false); // ★ 추가
       }
     };
 
-    // 이 페이지가 클라이언트 측에서 렌더링될 때만 API 호출 (SSR이 아닌 경우)
-    // 브라우저 환경에서만 실행되도록 조건부 로직 추가
-    if (typeof window !== 'undefined') {
-      fetchUserProfile();
-    }
-  }, []); // 빈 의존성 배열로 컴포넌트 마운트 시 한 번만 실행
+    fetchUserProfile();
+    console.log('Dashboard: useEffect 끝'); // ★ 추가
+  }, [router]); // router 객체의 변화에 반응
 
-  // 로그아웃 핸들러
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('jwtToken'); // 로컬 스토리지에서 토큰 삭제
-      router.replace('/login'); // 로그인 페이지로 리다이렉트하여 로그아웃 처리 완료
+      console.log('handleLogout: 로그아웃 시작');
+      // 1. 로컬 스토리지에서 JWT 토큰 삭제
+      localStorage.removeItem('jwtToken'); // <-- 이 줄을 추가해야 합니다!
+      console.log('handleLogout: JWT 토큰이 localStorage에서 삭제되었습니다.');
+  
+      // 2. 카카오 로그아웃 API 호출 (브라우저 리다이렉트)
+      // process.env.NEXT_PUBLIC_KAKAO_REST_API_KEY가 올바르게 설정되어 있다고 가정합니다.
+      const KAKAO_AUTH_LOGOUT_URL = `https://kauth.kakao.com/oauth/logout?client_id=${process.env.NEXT_PUBLIC_KAKAO_REST_API_KEY}&logout_redirect_uri=http://localhost:3001/login`;
+  
+      console.log('handleLogout: 카카오 로그아웃 URL로 리다이렉트:', KAKAO_AUTH_LOGOUT_URL);
+      window.location.href = KAKAO_AUTH_LOGOUT_URL;
     }
   };
 
-  if (loading) return <div style={{ padding: '20px', textAlign: 'center' }}>사용자 정보 로딩 중...</div>;
-  if (error) return <div style={{ padding: '20px', color: 'red', textAlign: 'center' }}>에러: {error}</div>;
-  // 사용자 정보가 아직 없거나 로딩 중이 아닐 때 메시지 표시
-  // `user`가 null인 상태에서 `loading`도 false면 (예: API 호출 실패 후 에러가 없으면)
-  if (!user && !loading) return <div style={{ padding: '20px', textAlign: 'center' }}>로그인된 사용자 정보가 없습니다.</div>;
+  // 렌더링 로직 (여기에는 변화 없음)
+  if (loading) {
+    console.log('Dashboard: 렌더링 - 로딩 중...'); // ★ 추가
+    return <div style={{ padding: '20px', textAlign: 'center' }}>사용자 정보 로딩 중...</div>;
+  }
+  if (error) {
+    console.log('Dashboard: 렌더링 - 에러 발생:', error); // ★ 추가
+    return <div style={{ padding: '20px', color: 'red', textAlign: 'center' }}>에러: {error}</div>;
+  }
+  if (!user) {
+    console.log('Dashboard: 렌더링 - 사용자 정보 없음. (리다이렉트 예정 또는 초기 상태)'); // ★ 추가
+    return <div style={{ padding: '20px', textAlign: 'center' }}>로그인된 사용자 정보가 없습니다.</div>;
+  }
 
+  console.log('Dashboard: 렌더링 - 사용자 정보 표시:', user); // ★ 추가
   return (
     <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', maxWidth: '800px', margin: '0 auto', border: '1px solid #eee', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
       <Head>
         <title>대시보드 - StockWeather</title>
       </Head>
-      <h1 style={{ color: '#333' }}>환영합니다, {user?.nickname}님!</h1> {/* user가 null일 수 있으므로 옵셔널 체이닝 */}
+      <h1 style={{ color: '#333' }}>환영합니다, {user?.nickname || '이름 없음'}님!</h1>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
-        {user?.profileImage && ( // user가 null일 수 있으므로 옵셔널 체이닝
+        {user?.profileImage && (
           <img
             src={user.profileImage}
             alt="프로필 이미지"
             style={{ width: '80px', height: '80px', borderRadius: '50%', marginRight: '15px', border: '2px solid #ddd' }}
           />
         )}
-        <div>
-          <p style={{ margin: '0 0 5px 0', fontSize: '16px', color: '#555' }}>이메일: {user?.email}</p>
-          <p style={{ margin: '0', fontSize: '14px', color: '#777' }}>카카오 ID: {user?.kakaoId}</p>
-        </div>
       </div>
       <p style={{ fontSize: '16px', color: '#666' }}>이곳은 로그인된 사용자만 접근할 수 있는 대시보드 페이지입니다.</p>
       <p style={{ fontSize: '14px', color: '#888' }}>
