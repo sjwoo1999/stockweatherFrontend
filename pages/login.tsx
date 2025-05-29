@@ -1,12 +1,38 @@
-// stockweather-frontend/src/pages/login.tsx (수정 제안)
+// stockweather-frontend/src/pages/login.tsx
 import React from 'react';
 import Head from 'next/head';
-import Image from 'next/image'; // Next.js Image 컴포넌트 임포트
+import Image, { ImageLoaderProps } from 'next/image'; // ImageLoaderProps도 임포트
+
+// 커스텀 이미지 로더 함수 정의
+const kakaoImageLoader = ({ src, width, quality }: ImageLoaderProps) => {
+  // src는 Image 컴포넌트의 src prop에서 온 "/images/kakao_login_..."
+  // width는 Next.js가 이미지 최적화를 위해 요청하는 너비
+  // quality는 Next.js가 요청하는 이미지 품질 (기본값 75)
+
+  // Next.js는 Image 컴포넌트의 width prop을 기반으로 srcSet을 자동으로 생성하므로,
+  // 여기서는 각 이미지 파일의 실제 크기를 고려하여 적절한 URL을 반환해야 합니다.
+
+  // 실제 파일 이름을 기준으로 조건 분기
+  if (src.includes('kakao_login_183x45.png')) {
+    return `/images/kakao_login_183x45.png`;
+  }
+  if (src.includes('kakao_login_300x45.png')) {
+    return `/images/kakao_login_300x45.png`;
+  }
+  if (src.includes('kakao_login_366x90.png')) {
+    return `/images/kakao_login_366x90.png`;
+  }
+  if (src.includes('kakao_login_600x90.png')) {
+    return `/images/kakao_login_600x90.png`;
+  }
+
+  // 기본값 또는 에러 처리
+  return src; // Fallback to original src if no specific match
+};
 
 function LoginPage() {
   const handleKakaoLogin = () => {
     // 백엔드의 카카오 인증 시작 엔드포인트로 사용자를 리다이렉트
-    // NEXT_PUBLIC_API_BASE_URL 환경 변수가 올바르게 설정되어 있다고 가정합니다.
     window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/kakao`;
   };
 
@@ -17,13 +43,12 @@ function LoginPage() {
       alignItems: 'center',
       justifyContent: 'center',
       minHeight: '100vh',
-      backgroundColor: '#f8fbfc', // 로고 색상과 어울리는 밝은 배경색
+      backgroundColor: '#f8fbfc',
       padding: '20px',
-      fontFamily: 'Pretendard, sans-serif' // 좀 더 현대적인 폰트 가이드 (예시)
+      fontFamily: 'Pretendard, sans-serif'
     }}>
       <Head>
         <title>로그인 - StockWeather</title>
-        {/* 파비콘도 스톡웨더 로고와 어울리게 설정 (선택 사항) */}
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
@@ -32,13 +57,13 @@ function LoginPage() {
         padding: '40px',
         borderRadius: '12px',
         boxShadow: '0 8px 24px rgba(0, 0, 0, 0.08)',
-        maxWidth: '420px', // 카카오 버튼 크기 고려하여 최대 너비 조정
+        maxWidth: '420px',
         width: '100%',
         textAlign: 'center'
       }}>
         <h1 style={{
-          fontSize: '2.0rem', // 서비스명 강조
-          color: '#2c3e50', // 진한 글씨색
+          fontSize: '2.0rem',
+          color: '#2c3e50',
           marginBottom: '10px',
           fontWeight: 'bold'
         }}>
@@ -70,7 +95,7 @@ function LoginPage() {
         {/* 카카오 로그인 버튼 */}
         <button
           onClick={handleKakaoLogin}
-          aria-label="카카오로 로그인" // 접근성 향상
+          aria-label="카카오로 로그인"
           style={{
             background: 'none',
             border: 'none',
@@ -78,25 +103,23 @@ function LoginPage() {
             padding: 0,
             display: 'block',
             margin: '0 auto',
-            maxWidth: '300px', // 카카오 버튼의 표준 너비
+            maxWidth: '300px',
             transition: 'transform 0.2s ease-in-out',
           }}
-          onMouseOver={(e) => (e.currentTarget.style.transform = 'scale(1.02)')} // 호버 효과
+          onMouseOver={(e) => (e.currentTarget.style.transform = 'scale(1.02)')}
           onMouseOut={(e) => (e.currentTarget.style.transform = 'scale(1)')}
         >
-          {/* Next.js Image 컴포넌트로 카카오 로그인 이미지 사용 */}
           <Image
-            src="/images/kakao_login_300x45.png" // 기본 src
+            // loader prop을 사용하여 커스텀 로더 함수 적용
+            loader={kakaoImageLoader}
+            src="/images/kakao_login_300x45.png" // 기본 src (loader 함수에서 처리)
             alt="카카오 로그인"
-            // srcSet을 Image 컴포넌트의 props로 사용 (직접 srcSet 문자열 제공)
-            srcSet={`
-              /images/kakao_login_183x45.png 183w,
-              /images/kakao_login_300x45.png 300w,
-              /images/kakao_login_366x90.png 366w,
-              /images/kakao_login_600x90.png 600w
-            `}
-            sizes="(max-width: 320px) 183px, (max-width: 480px) 300px, 300px"
-            width={300} // 기본 너비 (가장 일반적인 300x45 기준)
+            // srcSet과 sizes는 Image 컴포넌트의 props가 아니므로 제거하거나,
+            // sizes prop을 통해 Next.js가 srcSet을 생성하도록 합니다.
+            // 여기서는 loader를 사용했으므로 sizes도 제거해도 됩니다.
+            // 하지만 반응형 동작을 위해 sizes를 남겨두는 것도 좋습니다.
+            sizes="(max-width: 320px) 183px, (max-width: 480px) 300px, 300px" // Next.js가 srcSet을 만들 때 참고
+            width={300} // 기본 너비
             height={45}  // 기본 높이
             style={{
               display: 'block',
