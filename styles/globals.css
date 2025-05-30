@@ -19,9 +19,9 @@ body {
   position: relative;
   width: 60px;
   height: 60px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  display: flex; /* 추가: 중앙 정렬을 위해 */
+  justify-content: center; /* 추가: 중앙 정렬을 위해 */
+  align-items: center; /* 추가: 중앙 정렬을 위해 */
   border-radius: 50%;
 }
 
@@ -30,7 +30,7 @@ body {
   top: 50%;
   width: 35px;
   height: 7px;
-  background: white;
+  background: #E30547; /* 여기서 white 대신 브랜드 primary 색상으로 변경 */
   animation: dominos 1s ease infinite;
   box-shadow: 2px 2px 3px 0px rgba(0, 0, 0, 0.3);
 }
