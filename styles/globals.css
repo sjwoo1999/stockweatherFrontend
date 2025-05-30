@@ -1,27 +1,24 @@
+/* stockweather-frontend/src/styles/globals.css */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Gmarket+Sans:wght@700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400&display=swap');
+/* ✨ 모든 @import url() 폰트 로딩 지시자 제거 ✨ */
+/* 폰트 로딩은 이제 _app.tsx의 Next.js Font Optimization에서 처리합니다. */
 
+/* ✨ body 스타일 직접 지정 제거 ✨ */
+/* 전역 배경색, 폰트는 _app.tsx의 <main> 태그에 Tailwind 클래스로 적용됩니다. */
 body {
   margin: 0;
   line-height: normal;
-  font-family: 'Pretendard', sans-serif;
-  background-color: #fff9f8;
 }
 
-/* Spinner */
+/* Spinner: Tailwind 테마 색상을 직접 참조하도록 유지 */
 .spinner {
   position: relative;
   width: 60px;
   height: 60px;
-  display: flex; /* 추가: 중앙 정렬을 위해 */
-  justify-content: center; /* 추가: 중앙 정렬을 위해 */
-  align-items: center; /* 추가: 중앙 정렬을 위해 */
   border-radius: 50%;
 }
 
@@ -30,7 +27,8 @@ body {
   top: 50%;
   width: 35px;
   height: 7px;
-  background: #E30547; /* 여기서 white 대신 브랜드 primary 색상으로 변경 */
+  /* Tailwind 테마 색상 참조: `tailwind.config.js`에 정의된 `brand.primary` 색상 사용 */
+  background: theme('colors.brand.primary'); 
   animation: dominos 1s ease infinite;
   box-shadow: 2px 2px 3px 0px rgba(0, 0, 0, 0.3);
 }

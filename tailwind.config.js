@@ -1,57 +1,51 @@
-// stockweather-frontend/tailwind.config.js
+// tailwind.config.js
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    './pages/**/*.{ts,tsx,js,jsx}', // './pages' 경로 내 모든 파일
-    './components/**/*.{ts,tsx,js,jsx}', // './components' 경로 내 모든 파일
-    // 만약 'src' 폴더를 사용한다면 아래 경로도 추가해야 합니다.
-    './src/**/*.{ts,tsx,js,jsx}', // src 폴더 전체를 스캔
-    // 혹은 더 구체적으로:
-    // './src/pages/**/*.{ts,tsx,js,jsx}',
-    // './src/components/**/*.{ts,tsx,js,jsx}',
-    // './src/app/**/*.{ts,tsx,js,jsx}', // Next.js 13+ app directory 사용하는 경우
+    './pages/**/*.{ts,tsx,js,jsx}',
+    './components/**/*.{ts,tsx,js,jsx}',
+    './src/**/*.{ts,tsx,js,jsx}',
   ],
   theme: {
     extend: {
       colors: {
-        // 이전에 정의된 커스텀 색상들을 유지
         brand: {
-          light: '#FFF9F8',
-          primary: '#E30547', // 주요 브랜드 색상
-          dark: '#1A1A1A',
+          light: '#F8F8F8',  // 전체 배경색 (아주 연한 회색/흰색)
+          primary: '#3498db', // 주 색상 (파란색 계열)
+          // accent: '#E30547', // 강조 색상 (강렬한 붉은색, 에러/경고 등에 사용) - 제거됨
+          dark: '#2c3e50',  // 짙은 텍스트/요소 색상 (로그인 페이지 StockWeather 로고 색상)
         },
         surface: {
-          base: '#FFFFFF',
-          subtle: '#F4F4F4', // 프론트 코드에서 사용된 'bg-surface-subtle'이 이 색상을 참조합니다.
-          overlay: 'rgba(255,255,255,0.4)',
+          base: '#FFFFFF', // 카드, 컨테이너 배경 (순수 흰색)
+          subtle: '#F4F4F4', // 은은한 배경 (옅은 회색)
+          overlay: 'rgba(255,255,255,0.4)', // 모달 등 오버레이
         },
         text: {
-          default: '#111',
-          muted: '#666',
+          default: '#5e728e',  // 기본 텍스트 색상 (로그인 페이지 첫 p 태그 색상)
+          muted: '#7f8c8d',    // 보조 텍스트 색상 (로그인 페이지 두 번째 p 태그 색상)
+          light: '#95a5a6', // 로그인 페이지 하단 첫 번째 footer 텍스트
+          lighter: '#bdc3c7', // 로그인 페이지 하단 두 번째 footer 텍스트
         },
-        // 만약 필요한 경우, 기존 tailwind.config.ts의 변수 기반 색상도 여기에 통합
-        // (선택 사항: CSS 변수를 계속 사용할지 여부에 따라)
-        // background: "var(--background)",
-        // foreground: "var(--foreground)",
       },
       fontFamily: {
-        heading: ['"Plus Jakarta Sans"', 'sans-serif'],
-        body: ['"Pretendard"', 'sans-serif'],
-        accent: ['"Gmarket Sans"', 'sans-serif'],
+        heading: ['var(--font-heading)', 'sans-serif'], // Plus Jakarta Sans
+        body: ['var(--font-body)', 'sans-serif'],     // Noto Sans KR
+        accent: ['var(--font-accent)', 'sans-serif'],   // Black Han Sans
+        sans: ['Pretendard', 'sans-serif'], // 기본 sans-serif도 Pretendard로 지정
       },
       borderRadius: {
         sm: '8px',
         md: '12px',
         lg: '18px',
+        xl: '24px', 
         full: '9999px',
-        xl: '16px', // dashboard.tsx에서 사용된 rounded-xl을 위해 추가
       },
       boxShadow: {
         sm: '0 2px 6px rgba(0,0,0,0.06)',
-        card: '0 6px 16px rgba(0,0,0,0.08)',
+        md: '0 4px 10px rgba(0,0,0,0.1)',
+        lg: '0 8px 24px rgba(0,0,0,0.08)', // 로그인 페이지 카드 box-shadow와 일치
+        card: '0 6px 16px rgba(0,0,0,0.08)', 
         inner: 'inset 0 1px 2px rgba(0,0,0,0.08)',
-        md: '0 4px 10px rgba(0,0,0,0.1)', // dashboard.tsx에서 사용된 shadow-md를 위해 추가
-        lg: '0 8px 20px rgba(0,0,0,0.15)', // dashboard.tsx에서 사용된 shadow-lg를 위해 추가
       },
     },
   },
