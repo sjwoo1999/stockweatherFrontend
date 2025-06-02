@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { fetchUserSummary } from '@/services/stockService';
 import { StockSummary } from '@/types/stock';
+import axios from 'axios';
 
 export default function MySummary() {
   const router = useRouter();
