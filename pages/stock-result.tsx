@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { StockWeatherResponseDto, NewsArticleSummary } from '@/types/stock'; // NewsArticleSummary도 필요할 수 있으므로 추가
+import { StockWeatherResponseDto, NewsArticleSummary } from '@/types/stock';
 import Head from 'next/head';
 import Image from 'next/image';
-import axios from 'axios'; // axios.isAxiosError를 위해 필요
-import axiosInstance from '../api/axiosInstance'; // axiosInstance 임포트
+import axios from 'axios';
+import axiosInstance from '../api/axiosInstance';
 
 export default function StockResultPage() {
   const router = useRouter();
@@ -13,53 +13,48 @@ export default function StockResultPage() {
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Next.js 라우터가 준비되었는지 확인
     if (!router.isReady) {
       return;
     }
 
-    const { query } = router.query; // URL 쿼리 파라미터 'query'를 가져옴
+    // ✨ 이곳의 모든 주석을 제거했습니다. ✨
+    const currentQuery = router.query.query;
 
-    // 검색어가 없으면 에러 처리
-    if (typeof query !== 'string' || !query) {
+    if (typeof currentQuery !== 'string' || !currentQuery) {
       setError('검색어가 누락되었습니다. 대시보드에서 다시 검색해주세요.');
       setLoading(false);
       return;
     }
 
-    // 백엔드 API를 직접 호출하여 데이터를 가져옵니다.
     const fetchStockData = async () => {
       try {
-        setLoading(true); // 데이터 fetch 시작 시 로딩 상태로 설정
-        setError(null);   // 이전 에러 메시지 초기화
+        setLoading(true);
+        setError(null);
 
-        // ✨ 수정된 부분: fetch 대신 axiosInstance 사용 및 경로 수정 ✨
         const response = await axiosInstance.get<StockWeatherResponseDto>('/stock/search', {
-          params: { query: query } // 쿼리 파라미터는 params 객체로 전달
+          params: { query: currentQuery }
         });
 
-        // axios는 응답 데이터를 response.data에 넣어줍니다.
         const data = response.data;
         console.log('Fetched stock data:', data);
 
-        // 백엔드 응답이 올바른 StockWeatherResponseDto 구조인지 확인
         if (!data || !data.stock || !data.stock.name) {
           setError('필수 주식 정보(종목명)가 누락되었습니다. 대시보드에서 다시 검색해주세요.');
           setLoading(false);
           return;
         }
 
-        setStockResponse(data); // 전체 응답 객체를 상태에 저장
+        setStockResponse(data);
         setLoading(false);
 
-      } catch (err: any) {
+      } catch (err) {
         console.error('Failed to fetch stock data:', err);
-        // axios 에러 처리
         if (axios.isAxiosError(err)) {
-          // 백엔드에서 보낸 에러 메시지 또는 일반 에러 메시지 사용
           setError(err.response?.data?.message || err.message || '데이터를 불러오는 데 실패했습니다.');
+        } else if (err instanceof Error) {
+          setError(err.message || '데이터를 불러오는 데 실패했습니다.');
         } else {
-          setError('데이터를 불러오는 데 실패했습니다.');
+          setError('데이터를 불러오는 중 알 수 없는 오류가 발생했습니다.');
         }
         setLoading(false);
       }
@@ -67,9 +62,8 @@ export default function StockResultPage() {
 
     fetchStockData();
 
-  }, [router.isReady, router.query.query]); // router.query.query가 변경될 때마다 데이터를 다시 가져옵니다.
+  }, [router.isReady, router.query.query]);
 
-  // 로딩, 에러, 데이터 없음 상태 처리 (이전 코드와 동일)
   if (loading) {
     return (
       <div className="min-h-screen bg-brand-light flex justify-center items-center font-body text-text-default">
@@ -100,7 +94,6 @@ export default function StockResultPage() {
     );
   }
 
-  // stockResponse 상태가 null이거나 stock 데이터가 없을 때 처리
   if (!stockResponse || !stockResponse.stock) {
     return (
       <div className="min-h-screen bg-brand-light flex justify-center items-center font-body text-text-default">
@@ -120,8 +113,7 @@ export default function StockResultPage() {
     );
   }
 
-  // 주식 정보 표시
-  const stockData = stockResponse.stock; // 편의를 위해 별도 변수에 할당
+  const stockData = stockResponse.stock;
 
   return (
     <div className="min-h-screen bg-brand-light text-text-default p-4">
@@ -136,7 +128,7 @@ export default function StockResultPage() {
         <div className="mb-4 text-center">
           {stockResponse.weatherIcon ? (
             <Image
-              src={`/images/weather/${stockResponse.weatherIcon}.png`} // weatherIcon 경로 수정 예시
+              src={`/images/weather/${stockResponse.weatherIcon}.png`}
               alt="날씨 이미지"
               width={96}
               height={96}
@@ -196,7 +188,6 @@ export default function StockResultPage() {
           </div>
         </div>
 
-        {/* 관련 종목 추가 (선택 사항) */}
         {stockData.relatedStocks && stockData.relatedStocks.length > 0 && (
           <div className="mb-4">
             <h2 className="text-xl font-bold mb-2 font-heading text-text-default">관련 종목</h2>
@@ -210,7 +201,6 @@ export default function StockResultPage() {
           </div>
         )}
 
-        {/* 투자 의견 추가 (선택 사항) */}
         {stockData.investmentOpinion && (
           <div className="mb-4">
             <h2 className="text-xl font-bold mb-2 font-heading text-text-default">투자 의견</h2>
@@ -220,7 +210,6 @@ export default function StockResultPage() {
           </div>
         )}
 
-        {/* 법적 고지 추가 (선택 사항) */}
         {stockResponse.disclaimer && (
             <div className="text-xs text-gray-500 mt-4 p-2 border-t border-surface-subtle pt-2">
                 <p>{stockResponse.disclaimer}</p>
