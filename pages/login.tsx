@@ -1,11 +1,11 @@
 // stockweather-frontend/src/pages/login.tsx
+
 import React, { useEffect } from 'react';
 import Head from 'next/head';
 import Image, { ImageLoaderProps } from 'next/image';
 import { useRouter } from 'next/router';
 
-// 커스텀 이미지 로더 함수 정의
-const kakaoImageLoader = ({ src, /*width*/ /*quality*/ }: ImageLoaderProps) => {
+const kakaoImageLoader = ({ src }: ImageLoaderProps) => { // width, quality는 사용하지 않으면 제거
   if (src.includes('kakao_login_183x45.png')) {
     return `/images/kakao_login_183x45.png`;
   }
@@ -42,7 +42,36 @@ function LoginPage() {
     }, [router]);
 
   const handleKakaoLogin = () => {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/kakao`;
+    // 1. 카카오 개발자 콘솔에서 확인한 여러분의 카카오 REST API 키
+    // 이 값은 프론트엔드 환경 변수에 설정되어 있어야 합니다.
+    const KAKAO_CLIENT_ID = process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID;
+
+    // 2. 카카오 개발자 콘솔에 등록한 백엔드의 카카오 콜백 Redirect URI
+    // 이 값도 프론트엔드 환경 변수에 설정되어 있어야 합니다.
+    // 예: https://stockweather-backend-1011872961068.asia-northeast3.run.app/auth/kakao/callback
+    const KAKAO_REDIRECT_URI = process.env.NEXT_PUBLIC_KAKAO_REDIRECT_URI;
+
+    // 필수 환경 변수 누락 확인
+    if (!KAKAO_CLIENT_ID) {
+      alert("카카오 클라이언트 ID가 설정되지 않았습니다.");
+      console.error("환경 변수 NEXT_PUBLIC_KAKAO_CLIENT_ID가 누락되었습니다.");
+      return;
+    }
+    if (!KAKAO_REDIRECT_URI) {
+      alert("카카오 리다이렉트 URI가 설정되지 않았습니다.");
+      console.error("환경 변수 NEXT_PUBLIC_KAKAO_REDIRECT_URI가 누락되었습니다.");
+      return;
+    }
+
+    // 디버깅을 위해 환경 변수 값 출력
+    console.log("NEXT_PUBLIC_KAKAO_CLIENT_ID:", KAKAO_CLIENT_ID);
+    console.log("NEXT_PUBLIC_KAKAO_REDIRECT_URI:", KAKAO_REDIRECT_URI);
+
+
+    // ⭐⭐ 이 부분이 핵심! 카카오 인증 서버로 직접 리다이렉트 ⭐⭐
+    const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${KAKAO_CLIENT_ID}&redirect_uri=${KAKAO_REDIRECT_URI}&scope=profile_nickname,profile_image,account_email`;
+
+    window.location.href = kakaoAuthUrl;
   };
 
   return (
@@ -53,15 +82,14 @@ function LoginPage() {
       </Head>
 
       <div className="bg-surface-base p-10 rounded-xl shadow-lg max-w-md w-full text-center">
-        {/* 로고 이미지 추가 */}
         <div className="mb-4">
             <Image
-                src="/images/Logo.png" // public/images 폴더에 Logo.png 파일이 있다고 가정
+                src="/images/Logo.png"
                 alt="StockWeather Logo"
-                width={150} // 적절한 크기로 조절
-                height={40} // 적절한 크기로 조절
+                width={150}
+                height={40}
                 objectFit="contain"
-                className="mx-auto" // 중앙 정렬
+                className="mx-auto"
             />
         </div>
 
@@ -70,18 +98,16 @@ function LoginPage() {
         </h1>
         <p className="text-lg text-text-default mb-6 font-medium leading-relaxed">
           주식 시장을 날씨처럼 예보해주는 AI 투자 리포트
-          <br /> {/* 이 줄바꿈은 유지 (이미지 참고) */}
+          <br />
           <span className="text-brand-primary font-bold">주식의 흐름, 날씨처럼 쉽게!</span>
         </p>
 
-        {/* ✨ 변경: 폰트 크기를 text-sm으로 조정하여 줄바꿈 개선 시도 ✨ */}
         <p className="text-sm text-text-muted mb-8 leading-normal">
           간편한 카카오 로그인으로
-          <br /> {/* 이 줄바꿈은 유지 (이미지 참고) */}
+          <br />
           오늘의 주식 날씨를 확인하고, 현명한 투자 결정을 내려보세요.
         </p>
 
-        {/* 카카오 로그인 버튼 */}
         <button
           onClick={handleKakaoLogin}
           aria-label="카카오로 로그인"
