@@ -1,10 +1,11 @@
 // stockweather-frontend/src/pages/dashboard.tsx
+
 import React, { useEffect, useState } from 'react';
 import axiosInstance from '../api/axiosInstance';
 import axios from 'axios';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import Image from 'next/image'; 
+import Image from 'next/image';
 import { FaSearch, FaArrowRight } from 'react-icons/fa';
 
 // User 인터페이스는 기존 그대로 사용
@@ -23,7 +24,7 @@ function DashboardPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [recentSearches, /*setRecentSearches*/] = useState(['카카오', '네이버', 'LG전자']); 
+  const [recentSearches, /*setRecentSearches*/] = useState(['카카오', '네이버', 'LG전자']);
   const router = useRouter();
 
   useEffect(() => {
@@ -60,7 +61,7 @@ function DashboardPage() {
       } catch (err) {
         // console.error('Dashboard: fetchUserProfile 에러 발생:', err);
         if (axios.isAxiosError(err)) {
-          // console.error("fetchUserProfile 에러 상세:", err.response?.status, err.message, err.response?.data);
+          // console.error("fetchUserProfile 에러 상세:", err.response?.status, err.response?.data);
           if (err.response?.status === 401) {
             console.log("401 에러 발생: 토큰 만료 또는 유효하지 않음. 강제 로그아웃 처리.");
             handleLogout();
@@ -85,21 +86,23 @@ function DashboardPage() {
       // console.log('handleLogout: 로그아웃 시작');
       localStorage.removeItem('jwtToken');
       // console.log('handleLogout: JWT 토큰이 localStorage에서 삭제되었습니다.');
-  
+
       const KAKAO_LOGOUT_REDIRECT_URI = process.env.NEXT_PUBLIC_KAKAO_LOGOUT_REDIRECT_URI || 'http://localhost:3001/login';
       const KAKAO_AUTH_LOGOUT_URL = `https://kauth.kakao.com/oauth/logout?client_id=${process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID}&logout_redirect_uri=${encodeURIComponent(KAKAO_LOGOUT_REDIRECT_URI)}`;
-  
+
       // console.log('handleLogout: 카카오 로그아웃 URL로 리다이렉트:', KAKAO_AUTH_LOGOUT_URL);
       window.location.href = KAKAO_AUTH_LOGOUT_URL;
     }
   };
 
-  const handleSearch = async () => {
+  // ✨ 이 부분을 수정합니다. search-loading 페이지를 거치지 않습니다. ✨
+  const handleSearch = () => { // async 키워드 제거 (API 호출은 stock-result에서 할 것이므로)
     if (!searchTerm.trim()) {
       alert('검색어를 입력해주세요.');
       return;
     }
-    router.push(`/search-loading?query=${encodeURIComponent(searchTerm.trim())}`);
+    // query 파라미터에 검색어만 넘겨 stock-result 페이지로 이동
+    router.push(`/stock-result?query=${encodeURIComponent(searchTerm.trim())}`);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -108,8 +111,10 @@ function DashboardPage() {
     }
   };
 
+  // ✨ 이 부분을 수정합니다. search-loading 페이지를 거치지 않습니다. ✨
   const handleRecentSearchClick = (stockName: string) => {
-    router.push(`/search-loading?query=${encodeURIComponent(stockName)}`);
+    // query 파라미터에 검색어만 넘겨 stock-result 페이지로 이동
+    router.push(`/stock-result?query=${encodeURIComponent(stockName)}`);
   };
 
   if (loading) {
@@ -169,21 +174,21 @@ function DashboardPage() {
       <Head>
         <title>대시보드 - StockWeather</title>
       </Head>
-      
+
       {/* 메인 컨테이너 (카드): 이미지와 동일한 깔끔한 흰색 카드 디자인 유지 */}
       <div className="w-full max-w-md bg-surface-base flex flex-col justify-start px-8 py-10 shadow-lg rounded-xl">
-        
+
         {/* 프로필 이미지 및 환영 메시지 */}
         <div className="mb-8 text-center">
           {user?.profileImage && (
             <div className="w-28 h-28 rounded-full overflow-hidden mx-auto mb-4 border-2 border-surface-subtle shadow-md">
-                <Image 
+                <Image
                     src={user.profileImage}
-                    alt="프로필 이미지" 
-                    width={112} 
-                    height={112} 
+                    alt="프로필 이미지"
+                    width={112}
+                    height={112}
                     objectFit="cover"
-                    unoptimized 
+                    unoptimized
                 />
             </div>
           )}
@@ -197,7 +202,7 @@ function DashboardPage() {
         <h2 className="text-center font-heading text-xl mb-6 text-brand-dark">
           어떤 종목에 대한 정보를 원하시나요?
         </h2>
-        
+
         {/* 검색 입력창 디자인 (primary 색상 적용) */}
         <div className="flex items-center bg-surface-subtle px-4 py-2 rounded-full shadow-sm w-full mb-8">
           {/* 검색 아이콘 색상: brand.primary (파란색) */}
@@ -220,7 +225,7 @@ function DashboardPage() {
         </div>
 
         {/* 최근 검색 종목 섹션 */}
-        <div className="mt-4 flex-grow"> 
+        <div className="mt-4 flex-grow">
           <h3 className="text-lg font-heading text-brand-dark mb-4 border-b border-surface-subtle pb-2">최근 검색 종목</h3>
           <ul className="space-y-3">
             {recentSearches.map((item, index) => (
@@ -231,7 +236,7 @@ function DashboardPage() {
               >
                 <span>{item}</span>
                 {/* 화살표 색상: brand.primary (파란색) */}
-                <FaArrowRight className="text-brand-primary text-sm" /> 
+                <FaArrowRight className="text-brand-primary text-sm" />
               </li>
             ))}
           </ul>
