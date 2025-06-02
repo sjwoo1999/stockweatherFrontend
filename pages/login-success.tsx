@@ -25,7 +25,7 @@ function LoginSuccessPage() {
         // setTimeout 제거, 바로 리다이렉트
         router.replace('/dashboard'); 
 
-      } catch (e) {
+      } catch (_e) {
         // console.error('LoginSuccess: Error setting localStorage:', e);
         router.replace('/login');
       }
