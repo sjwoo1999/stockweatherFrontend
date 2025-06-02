@@ -23,7 +23,7 @@ function DashboardPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [recentSearches, setRecentSearches] = useState(['카카오', '네이버', 'LG전자']); 
+  const [recentSearches, /*setRecentSearches*/] = useState(['카카오', '네이버', 'LG전자']); 
   const router = useRouter();
 
   useEffect(() => {

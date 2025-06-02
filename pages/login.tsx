@@ -5,7 +5,7 @@ import Image, { ImageLoaderProps } from 'next/image';
 import { useRouter } from 'next/router';
 
 // 커스텀 이미지 로더 함수 정의
-const kakaoImageLoader = ({ src, width, quality }: ImageLoaderProps) => {
+const kakaoImageLoader = ({ src, /*width*/ /*quality*/ }: ImageLoaderProps) => {
   if (src.includes('kakao_login_183x45.png')) {
     return `/images/kakao_login_183x45.png`;
   }

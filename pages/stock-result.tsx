@@ -1,10 +1,9 @@
-// stockweather-frontend/src/pages/stock-result.tsx
-
 import React from 'react';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
-import { StockSearchResult } from '@/types/stock';
+import { StockSearchResult } from '@/types/stock'; // '@/types/stock' 경로가 올바르다고 가정합니다.
 import Head from 'next/head';
+import Image from 'next/image'; // ⭐ Image 컴포넌트 임포트
 
 export default function StockResultPage() {
   const router = useRouter();
@@ -28,7 +27,7 @@ export default function StockResultPage() {
     } else {
       setError('올바른 주식 데이터가 제공되지 않았습니다.');
     }
-  }, [router]);
+  }, [router]); // router는 router.isReady, router.query를 사용하므로 의존성 배열에 유지하는 것이 맞습니다.
 
   if (error) {
     return (
@@ -69,7 +68,14 @@ export default function StockResultPage() {
         </h1>
 
         <div className="mb-4 text-center">
-          <img src={stockData.weatherImage} alt="날씨 이미지" className="w-24 h-24 mx-auto mb-2" />
+          {/* ⭐ <img> 태그를 <Image /> 컴포넌트로 교체 */}
+          <Image
+            src={stockData.weatherImage}
+            alt="날씨 이미지"
+            width={96} // `w-24` (tailwindcss)는 기본적으로 96px 이므로 `width`를 96으로 설정합니다.
+            height={96} // `h-24` (tailwindcss)는 기본적으로 96px 이므로 `height`를 96으로 설정합니다.
+            className="mx-auto mb-2" // TailwindCSS 클래스는 className으로 그대로 유지
+          />
           {/* ✨ 감성 텍스트 폰트, 색상 변경 (브랜드 메인 색상 또는 강조색) ✨ */}
           <p className="text-lg font-semibold font-body text-brand-primary">
             {stockData.sentimentText}
