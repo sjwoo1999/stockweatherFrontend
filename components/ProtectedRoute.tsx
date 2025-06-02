@@ -22,7 +22,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     }
 
     const token = localStorage.getItem('jwtToken');
-    console.log('ProtectedRoute: Checking for token. Current token:', token ? token : '없음');
+    // console.log('ProtectedRoute: Checking for token. Current token:', token ? token : '없음');
 
     // 특정 경로에서만 보호 로직을 적용
     const publicPaths = ['/', '/login', '/login-success', '/api']; // 공개 경로 목록
@@ -33,7 +33,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     if (isProtectedPath) {
       if (!token) {
         // 토큰이 없으면 로그인 페이지로 리다이렉트
-        console.log('ProtectedRoute: 토큰 없음. 로그인 페이지로 리다이렉트:', router.pathname);
+        // console.log('ProtectedRoute: 토큰 없음. 로그인 페이지로 리다이렉트:', router.pathname);
         router.replace('/login');
       }
       // 토큰이 있으면 그대로 자식 컴포넌트 렌더링 (이상이 없으므로 아무것도 하지 않음)
@@ -42,7 +42,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       // 이 부분이 "로그아웃 -> 로그인 페이지 -> 대시보드" 흐름의 원인이 될 수 있습니다.
       // 즉, 로그아웃 시 토큰이 제대로 지워지지 않았다면, login 페이지에서도 바로 대시보드로 갑니다.
       if (token && (router.pathname === '/login' || router.pathname === '/login-success')) {
-        console.log('ProtectedRoute: 공개 경로이나 토큰 존재. 대시보드로 리다이렉트:', router.pathname);
+        // console.log('ProtectedRoute: 공개 경로이나 토큰 존재. 대시보드로 리다이렉트:', router.pathname);
         router.replace('/dashboard');
       }
     }
