@@ -27,40 +27,40 @@ function DashboardPage() {
   const router = useRouter();
 
   useEffect(() => {
-    console.log('Dashboard: useEffect 시작');
+    // console.log('Dashboard: useEffect 시작');
 
     if (typeof window === 'undefined') {
-      console.log('Dashboard: 서버 측 렌더링 (SSR) 환경, API 호출 건너뜜.');
+      // console.log('Dashboard: 서버 측 렌더링 (SSR) 환경, API 호출 건너뜜.');
       setLoading(false);
       return;
     }
 
     const token = localStorage.getItem('jwtToken');
-    console.log('Dashboard: localStorage에서 토큰 확인:', token ? '존재함' : '없음');
+    // console.log('Dashboard: localStorage에서 토큰 확인:', token ? '존재함' : '없음');
 
     if (!token) {
-      console.log('Dashboard: JWT 토큰이 없어 /users/me 호출을 건너뛰고 로그인 페이지로 리다이렉트합니다.');
+      // console.log('Dashboard: JWT 토큰이 없어 /users/me 호출을 건너뛰고 로그인 페이지로 리다이렉트합니다.');
       setLoading(false);
       router.replace('/login');
       return;
     }
 
     const fetchUserProfile = async () => {
-      console.log('Dashboard: fetchUserProfile 함수 실행 시작.');
+      // console.log('Dashboard: fetchUserProfile 함수 실행 시작.');
       try {
         setLoading(true);
         setError(null);
-        console.log('Dashboard: /users/me API 호출 시작...');
+        // console.log('Dashboard: /users/me API 호출 시작...');
         const response = await axiosInstance.get<User>('/users/me');
-        console.log('Dashboard: /users/me API 응답 성공:', response.data);
+        // console.log('Dashboard: /users/me API 응답 성공:', response.data);
         setUser(response.data);
         // ✨ 여기서 실제 최근 검색 종목 API가 있다면 대체 ✨
         // 예시: const recentResponse = await axiosInstance.get('/api/recent-searches');
         // setRecentSearches(recentResponse.data);
       } catch (err) {
-        console.error('Dashboard: fetchUserProfile 에러 발생:', err);
+        // console.error('Dashboard: fetchUserProfile 에러 발생:', err);
         if (axios.isAxiosError(err)) {
-          console.error("fetchUserProfile 에러 상세:", err.response?.status, err.message, err.response?.data);
+          // console.error("fetchUserProfile 에러 상세:", err.response?.status, err.message, err.response?.data);
           if (err.response?.status === 401) {
             console.log("401 에러 발생: 토큰 만료 또는 유효하지 않음. 강제 로그아웃 처리.");
             handleLogout();
@@ -72,24 +72,24 @@ function DashboardPage() {
         }
       } finally {
         setLoading(false);
-        console.log('Dashboard: fetchUserProfile 함수 실행 완료. 로딩 상태:', false);
+        // console.log('Dashboard: fetchUserProfile 함수 실행 완료. 로딩 상태:', false);
       }
     };
 
     fetchUserProfile();
-    console.log('Dashboard: useEffect 끝');
+    // console.log('Dashboard: useEffect 끝');
   }, [router]);
 
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
-      console.log('handleLogout: 로그아웃 시작');
+      // console.log('handleLogout: 로그아웃 시작');
       localStorage.removeItem('jwtToken');
-      console.log('handleLogout: JWT 토큰이 localStorage에서 삭제되었습니다.');
+      // console.log('handleLogout: JWT 토큰이 localStorage에서 삭제되었습니다.');
   
       const KAKAO_LOGOUT_REDIRECT_URI = process.env.NEXT_PUBLIC_KAKAO_LOGOUT_REDIRECT_URI || 'http://localhost:3001/login';
       const KAKAO_AUTH_LOGOUT_URL = `https://kauth.kakao.com/oauth/logout?client_id=${process.env.NEXT_PUBLIC_KAKAO_REST_API_KEY}&logout_redirect_uri=${encodeURIComponent(KAKAO_LOGOUT_REDIRECT_URI)}`;
   
-      console.log('handleLogout: 카카오 로그아웃 URL로 리다이렉트:', KAKAO_AUTH_LOGOUT_URL);
+      // console.log('handleLogout: 카카오 로그아웃 URL로 리다이렉트:', KAKAO_AUTH_LOGOUT_URL);
       window.location.href = KAKAO_AUTH_LOGOUT_URL;
     }
   };

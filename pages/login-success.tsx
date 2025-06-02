@@ -7,30 +7,30 @@ function LoginSuccessPage() {
 
   useEffect(() => {
     if (!router.isReady) {
-      console.log('LoginSuccess: Router not ready yet, waiting...');
+      // console.log('LoginSuccess: Router not ready yet, waiting...');
       return;
     }
 
     const { token } = router.query;
 
-    console.log('LoginSuccess: router.query.token received:', token);
-    console.log('LoginSuccess: typeof token:', typeof token);
+    // console.log('LoginSuccess: router.query.token received:', token);
+    // console.log('LoginSuccess: typeof token:', typeof token);
 
     if (token && typeof token === 'string') {
       try {
         localStorage.setItem('jwtToken', token);
-        console.log('LoginSuccess: JWT Token stored in localStorage.');
-        console.log('LoginSuccess: Verifying localStorage AFTER set:', localStorage.getItem('jwtToken'));
+        // console.log('LoginSuccess: JWT Token stored in localStorage.');
+        // console.log('LoginSuccess: Verifying localStorage AFTER set:', localStorage.getItem('jwtToken'));
 
         // setTimeout 제거, 바로 리다이렉트
         router.replace('/dashboard'); 
 
       } catch (e) {
-        console.error('LoginSuccess: Error setting localStorage:', e);
+        // console.error('LoginSuccess: Error setting localStorage:', e);
         router.replace('/login');
       }
     } else {
-      console.error('LoginSuccess: URL에 토큰이 없거나 형식이 올바르지 않습니다. 로그인 실패 처리.');
+      // console.error('LoginSuccess: URL에 토큰이 없거나 형식이 올바르지 않습니다. 로그인 실패 처리.');
       router.replace('/login');
     }
   }, [router]);

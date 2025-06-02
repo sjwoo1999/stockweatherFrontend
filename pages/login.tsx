@@ -26,18 +26,18 @@ function LoginPage() {
 
     useEffect(() => {
       if (typeof window !== 'undefined') {
-        console.group('LoginPage useEffect 시작');
-        console.log('1. LoginPage: 페이지 로드 시점');
+        // console.group('LoginPage useEffect 시작');
+        // console.log('1. LoginPage: 페이지 로드 시점');
         const token = localStorage.getItem('jwtToken');
-        console.log('2. LoginPage: localStorage 토큰 확인 결과:', token ? '존재함 (값: ' + token.substring(0, 30) + '...)' : '없음');
+        // console.log('2. LoginPage: localStorage 토큰 확인 결과:', token ? '존재함 (값: ' + token.substring(0, 30) + '...)' : '없음');
 
         if (token) {
-          console.log('3. LoginPage: 토큰이 존재하여 대시보드로 리다이렉트합니다.');
+          // console.log('3. LoginPage: 토큰이 존재하여 대시보드로 리다이렉트합니다.');
           router.replace('/dashboard');
         } else {
-          console.log('3. LoginPage: 토큰이 없어 로그인 페이지에 머무릅니다.');
+          // console.log('3. LoginPage: 토큰이 없어 로그인 페이지에 머무릅니다.');
         }
-        console.groupEnd();
+        // console.groupEnd();
       }
     }, [router]);
 
@@ -64,8 +64,8 @@ function LoginPage() {
     }
 
     // 디버깅을 위해 환경 변수 값 출력 (배포 후에는 제거하거나 개발 환경에서만 활성화)
-    console.log("NEXT_PUBLIC_KAKAO_CLIENT_ID (from frontend):", KAKAO_CLIENT_ID);
-    console.log("NEXT_PUBLIC_KAKAO_REDIRECT_URI (from frontend):", KAKAO_REDIRECT_URI);
+    // console.log("NEXT_PUBLIC_KAKAO_CLIENT_ID (from frontend):", KAKAO_CLIENT_ID);
+    // console.log("NEXT_PUBLIC_KAKAO_REDIRECT_URI (from frontend):", KAKAO_REDIRECT_URI);
 
     // ⭐⭐⭐ 핵심 수정: 카카오 인증 서버로 직접 리다이렉트 ⭐⭐⭐
     const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${KAKAO_CLIENT_ID}&redirect_uri=${KAKAO_REDIRECT_URI}&scope=profile_nickname,profile_image,account_email`;
