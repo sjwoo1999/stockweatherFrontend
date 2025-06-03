@@ -4,17 +4,19 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ✨ 모든 @import url() 폰트 로딩 지시자 제거 ✨ */
-/* 폰트 로딩은 이제 _app.tsx의 Next.js Font Optimization에서 처리합니다. */
+/* * Font loading is now handled by Next.js Font Optimization in _app.tsx.
+ * All @import url() font loading directives have been removed. 
+ */
 
-/* ✨ body 스타일 직접 지정 제거 ✨ */
-/* 전역 배경색, 폰트는 _app.tsx의 <main> 태그에 Tailwind 클래스로 적용됩니다. */
+/* * Global body styles are now applied using Tailwind classes on the <main> tag in _app.tsx.
+ * Direct body styling has been removed.
+ */
 body {
   margin: 0;
   line-height: normal;
 }
 
-/* Spinner: Tailwind 테마 색상을 직접 참조하도록 유지 */
+/* Spinner: Maintains direct reference to Tailwind theme colors */
 .spinner {
   position: relative;
   width: 60px;
@@ -27,7 +29,7 @@ body {
   top: 50%;
   width: 35px;
   height: 7px;
-  /* Tailwind 테마 색상 참조: `tailwind.config.js`에 정의된 `brand.primary` 색상 사용 */
+  /* Referencing Tailwind theme color: using `brand.primary` as defined in `tailwind.config.js` */
   background: theme('colors.brand.primary'); 
   animation: dominos 1s ease infinite;
   box-shadow: 2px 2px 3px 0px rgba(0, 0, 0, 0.3);
@@ -46,4 +48,10 @@ body {
   50% { opacity: 0.7; }
   75% { transform: rotate(90deg); }
   80% { opacity: 1; }
+}
+
+/* ✨ @keyframes spin for LoadingPage and StockResultPage ✨ */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }

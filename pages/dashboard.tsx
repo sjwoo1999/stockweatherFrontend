@@ -101,8 +101,7 @@ function DashboardPage() {
       alert('검색어를 입력해주세요.');
       return;
     }
-    // query 파라미터에 검색어만 넘겨 stock-result 페이지로 이동
-    router.push(`/stock-result?query=${encodeURIComponent(searchTerm.trim())}`);
+    router.push(`/loading?query=${encodeURIComponent(searchTerm.trim())}`);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -113,8 +112,7 @@ function DashboardPage() {
 
   // ✨ 이 부분을 수정합니다. search-loading 페이지를 거치지 않습니다. ✨
   const handleRecentSearchClick = (stockName: string) => {
-    // query 파라미터에 검색어만 넘겨 stock-result 페이지로 이동
-    router.push(`/stock-result?query=${encodeURIComponent(stockName)}`);
+    router.push(`/loading?query=${encodeURIComponent(stockName)}`);
   };
 
   if (loading) {

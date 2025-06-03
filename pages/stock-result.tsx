@@ -1,226 +1,164 @@
-import React, { useEffect, useState } from 'react';
+// stockweather-frontend/src/pages/stock-result.tsx
+
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { StockWeatherResponseDto, NewsArticleSummary } from '@/types/stock';
 import Head from 'next/head';
-import Image from 'next/image';
-import axios from 'axios';
-import axiosInstance from '../api/axiosInstance';
+import Debug from 'debug';
+
+const log = Debug('stockweather:stock-result');
+
+import { StockWeatherResponseDto, KeywordSentiment } from '../types/stock';
+
+interface StockAnalysisResult extends StockWeatherResponseDto {}
 
 export default function StockResultPage() {
   const router = useRouter();
-  const [stockResponse, setStockResponse] = useState<StockWeatherResponseDto | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [analysisResult, setAnalysisResult] = useState<StockAnalysisResult | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!router.isReady) {
-      return;
-    }
+    log('useEffect 실행됨. localStorage에서 데이터 로드 시도.');
+    const storedData = localStorage.getItem('stockWeatherData');
+    debugger; // ✨ 이 라인에 debugger 추가 ✨
 
-    // ✨ 이곳의 모든 주석을 제거했습니다. ✨
-    const currentQuery = router.query.query;
+    log('localStorage.getItem("stockWeatherData") 결과:', storedData);
 
-    if (typeof currentQuery !== 'string' || !currentQuery) {
-      setError('검색어가 누락되었습니다. 대시보드에서 다시 검색해주세요.');
-      setLoading(false);
-      return;
-    }
-
-    const fetchStockData = async () => {
+    if (storedData) {
       try {
-        setLoading(true);
-        setError(null);
+        const data: StockAnalysisResult = JSON.parse(storedData);
+        log('localStorage 데이터 파싱 성공:', data);
 
-        const response = await axiosInstance.get<StockWeatherResponseDto>('/stock/search', {
-          params: { query: currentQuery }
-        });
-
-        const data = response.data;
-        console.log('Fetched stock data:', data);
-
-        if (!data || !data.stock || !data.stock.name) {
-          setError('필수 주식 정보(종목명)가 누락되었습니다. 대시보드에서 다시 검색해주세요.');
+        if (data && data.stock && data.stock.name && data.timestamp) {
+          setAnalysisResult(data);
+          localStorage.removeItem('stockWeatherData');
+          log('데이터 유효성 검사 통과 및 상태 업데이트 완료.');
           setLoading(false);
-          return;
-        }
-
-        setStockResponse(data);
-        setLoading(false);
-
-      } catch (err) {
-        console.error('Failed to fetch stock data:', err);
-        if (axios.isAxiosError(err)) {
-          setError(err.response?.data?.message || err.message || '데이터를 불러오는 데 실패했습니다.');
-        } else if (err instanceof Error) {
-          setError(err.message || '데이터를 불러오는 데 실패했습니다.');
         } else {
-          setError('데이터를 불러오는 중 알 수 없는 오류가 발생했습니다.');
+          log('파싱된 데이터의 형식이 유효하지 않습니다. 리다이렉트:', data);
+          router.replace('/dashboard?error=invalid_result_data_format');
         }
-        setLoading(false);
+      } catch (e) {
+        log('localStorage 데이터 파싱 오류 발생:', e);
+        router.replace('/dashboard?error=parse_failed');
       }
-    };
+    } else {
+      log('localStorage에 "stockWeatherData" 데이터가 없습니다. 대시보드로 리다이렉트.');
+      router.replace('/dashboard?error=no_data');
+    }
+  }, [router]);
 
-    fetchStockData();
-
-  }, [router.isReady, router.query.query]);
-
-  if (loading) {
+  if (loading || !analysisResult) {
     return (
-      <div className="min-h-screen bg-brand-light flex justify-center items-center font-body text-text-default">
+      <div className="min-h-screen bg-[#FFF5F5] flex flex-col justify-center items-center">
         <Head>
           <title>로딩 중 - StockWeather</title>
         </Head>
-        <p>데이터 로딩 중...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-brand-light flex justify-center items-center font-body text-text-default">
-        <Head>
-          <title>오류 - StockWeather</title>
-        </Head>
-        <div className="text-center p-4">
-          <p className="text-brand-primary mb-4">{error}</p>
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="mt-6 w-full max-w-xs bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-brand-primary/90 transition duration-300 font-body"
-          >
-            대시보드로 돌아가기
-          </button>
+        <div className="spinner">
+          {[...Array(8)].map((_, i) => (
+            <span key={i}></span>
+          ))}
         </div>
+        <p className="mt-4 text-base text-gray-600 font-medium">분석 결과 로딩 중...</p>
       </div>
     );
   }
-
-  if (!stockResponse || !stockResponse.stock) {
-    return (
-      <div className="min-h-screen bg-brand-light flex justify-center items-center font-body text-text-default">
-        <Head>
-          <title>데이터 없음 - StockWeather</title>
-        </Head>
-        <div className="text-center p-4">
-          <p className="text-brand-primary mb-4">표시할 데이터가 없습니다.</p>
-          <button
-              onClick={() => router.push('/dashboard')}
-              className="mt-6 w-full max-w-xs bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-brand-primary/90 transition duration-300 font-body"
-            >
-              대시보드로 돌아가기
-            </button>
-        </div>
-      </div>
-    );
-  }
-
-  const stockData = stockResponse.stock;
 
   return (
-    <div className="min-h-screen bg-brand-light text-text-default p-4">
+    <div className="min-h-screen bg-[#FFF5F5] p-4 text-gray-800">
       <Head>
-        <title>{stockData.name} - StockWeather</title>
+        <title>{analysisResult.stock.name} 분석 - StockWeather</title>
       </Head>
-      <div className="max-w-md mx-auto bg-surface-base rounded-md shadow-card p-6 my-8">
-        <h1 className="text-2xl font-bold mb-4 text-center font-heading text-brand-dark">
-          {stockData.name}
+
+      <div className="max-w-md mx-auto bg-white rounded-lg shadow-md p-6 mt-8">
+        <h1 className="text-3xl font-extrabold text-center mb-6 text-indigo-700">
+          {analysisResult.stock.name} 날씨 분석
         </h1>
 
         <div className="mb-4 text-center">
-          {stockResponse.weatherIcon ? (
-            <Image
-              src={`/images/weather/${stockResponse.weatherIcon}.png`}
-              alt="날씨 이미지"
-              width={96}
-              height={96}
-              priority
-              className="mx-auto mb-2"
-            />
-          ) : (
-            <div className="w-24 h-24 mx-auto mb-2 flex items-center justify-center bg-gray-200 rounded-full">
-              <p className="text-sm text-gray-500">이미지 없음</p>
-            </div>
-          )}
-          <p className="text-lg font-semibold font-body text-brand-primary">
-            {stockData.overallSentiment}
-          </p>
-          <p className="text-sm text-text-muted">{stockData.weatherSummary}</p>
+          <p className="text-xl font-semibold mb-2">{analysisResult.stock.weatherSummary}</p>
+          <img src={`/icons/${analysisResult.weatherIcon}.svg`} alt={analysisResult.weatherIcon} className="w-24 h-24 mx-auto" />
         </div>
 
         <div className="mb-4">
-          <h2 className="text-xl font-bold mb-2 font-heading text-text-default">요약</h2>
-          <p className="text-sm font-body text-text-muted mb-4 leading-relaxed">
-            {stockData.reportSummary ? (
-              stockData.reportSummary.split('\n').map((line, index) => (
-                <React.Fragment key={index}>
-                  {line}
-                  {(index < stockData.reportSummary.split('\n').length - 1) && <br />}
-                </React.Fragment>
-              ))
-            ) : (
-              "현재 관련 뉴스를 찾을 수 없어 심층적인 분석 요약을 제공하기 어렵습니다."
-            )}
+          <h2 className="text-lg font-bold mb-1 text-indigo-600">종합 감정:</h2>
+          <p className={`text-md font-medium ${
+            analysisResult.stock.overallSentiment === 'POSITIVE' ? 'text-green-600' :
+            analysisResult.stock.overallSentiment === 'NEGATIVE' ? 'text-red-600' : 'text-gray-600'
+          }`}>
+            {analysisResult.stock.overallSentiment} (점수: {analysisResult.stock.sentimentScore.toFixed(2)})
           </p>
         </div>
 
         <div className="mb-4">
-          <h2 className="text-xl font-bold mb-2 font-heading text-text-default">관련 기사</h2>
-          <div className="space-y-4">
-            {stockData.articles && stockData.articles.length > 0 ? (
-              stockData.articles.map((article: NewsArticleSummary, index) => (
-                <div key={index} className="mb-3 p-3 border border-surface-subtle rounded-md shadow-sm bg-surface-base">
-                  <h3 className="text-base font-semibold font-body text-text-default">{article.title}</h3>
-                  <p className="text-sm font-body text-text-muted mt-1">{article.summary}</p>
-                  {article.url && (
-                    <a
-                      href={article.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-primary-default hover:underline mt-2 inline-block"
-                    >
-                      기사 원문 보기
-                    </a>
-                  )}
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-text-muted">관련 기사를 찾을 수 없습니다.</p>
-            )}
-          </div>
+          <h2 className="text-lg font-bold mb-1 text-indigo-600">리포트 요약:</h2>
+          <p className="text-gray-700 leading-relaxed">{analysisResult.stock.reportSummary}</p>
         </div>
 
-        {stockData.relatedStocks && stockData.relatedStocks.length > 0 && (
+        {analysisResult.stock.keywords && analysisResult.stock.keywords.length > 0 && (
           <div className="mb-4">
-            <h2 className="text-xl font-bold mb-2 font-heading text-text-default">관련 종목</h2>
-            <ul className="list-disc pl-5">
-              {stockData.relatedStocks.map((related, index) => (
-                <li key={index} className="text-sm text-text-muted">
-                  {related.name}: {related.opinion} ({Math.round(related.confidence * 100)}%)
-                </li>
+            <h2 className="text-lg font-bold mb-1 text-indigo-600">주요 키워드:</h2>
+            <div className="flex flex-wrap gap-2">
+              {analysisResult.stock.keywords.map((keyword: KeywordSentiment, index: number) => (
+                <span key={index} className="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                  {keyword.text}
+                </span>
               ))}
-            </ul>
+            </div>
           </div>
         )}
 
-        {stockData.investmentOpinion && (
+        {analysisResult.stock.investmentOpinion && (
           <div className="mb-4">
-            <h2 className="text-xl font-bold mb-2 font-heading text-text-default">투자 의견</h2>
-            <p className="text-sm font-body text-text-muted">
-              의견: {stockData.investmentOpinion.opinion} (확신도: {Math.round(stockData.investmentOpinion.confidence * 100)}%)
+            <h2 className="text-lg font-bold mb-1 text-indigo-600">투자 의견:</h2>
+            <p className="text-gray-700">
+              {analysisResult.stock.investmentOpinion.opinion} (신뢰도: {analysisResult.stock.investmentOpinion.confidence.toFixed(2)})
             </p>
           </div>
         )}
 
-        {stockResponse.disclaimer && (
-            <div className="text-xs text-gray-500 mt-4 p-2 border-t border-surface-subtle pt-2">
-                <p>{stockResponse.disclaimer}</p>
-            </div>
+        {analysisResult.stock.detailedAnalysis && (
+          <div className="mb-4">
+            <h2 className="text-lg font-bold mb-1 text-indigo-600">상세 분석:</h2>
+            <p className="text-gray-700 leading-relaxed">{analysisResult.stock.detailedAnalysis}</p>
+          </div>
         )}
 
+        {analysisResult.stock.relatedStocks && analysisResult.stock.relatedStocks.length > 0 && (
+          <div className="mb-4">
+            <h2 className="text-lg font-bold mb-1 text-indigo-600">관련 종목:</h2>
+            <p className="text-gray-700">{analysisResult.stock.relatedStocks.join(', ')}</p>
+          </div>
+        )}
+
+        <h2 className="text-xl font-bold mt-6 mb-3 text-indigo-700">관련 뉴스 기사</h2>
+        {analysisResult.stock.articles && analysisResult.stock.articles.length > 0 ? (
+          <ul className="space-y-4">
+            {analysisResult.stock.articles.map((article, index) => (
+              <li key={index} className="bg-gray-50 p-4 rounded-md shadow-sm">
+                <a href={article.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-base font-semibold block mb-1">
+                  {article.title}
+                </a>
+                <p className="text-sm text-gray-700 leading-snug">{article.summary}</p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-gray-600">관련 기사가 없습니다.</p>
+        )}
+
+        <p className="mt-8 text-xs text-gray-500 text-center">
+          {analysisResult.disclaimer}
+        </p>
+
+        <p className="text-xs text-gray-500 text-center mt-2">
+          분석 시각: {new Date(analysisResult.timestamp).toLocaleString()}
+        </p>
+
         <button
-          onClick={() => router.push('/dashboard')}
-          className="mt-6 w-full bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-brand-primary/90 transition duration-300 font-body"
+          onClick={() => router.replace('/dashboard')}
+          className="mt-8 w-full px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition duration-300 ease-in-out"
         >
-          대시보드로 돌아가기
+          메인으로 돌아가기
         </button>
       </div>
     </div>

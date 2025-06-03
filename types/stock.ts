@@ -29,14 +29,14 @@ export interface KeywordSentiment {
 
 // 투자 의견 (백엔드의 InvestmentOpinion와 동일하게)
 export interface InvestmentOpinion {
-    opinion: '추가 매수' | '적정 매수' | '유지' | '적정 매도' | '추가 매도';
+    opinion: '매수' | '추가 매수' | '적정 매수' | '유지' | '적정 매도' | '추가 매도' | '매도'; // 백엔드와 동일하게 '매수', '매도' 추가
     confidence: number;
 }
 
 // 관련 종목 (백엔드의 RelatedStock와 동일하게)
 export interface RelatedStock {
     name: string;
-    opinion: '추가 매수' | '적정 매수' | '유지' | '적정 매도' | '추가 매도';
+    opinion: '매수' | '추가 매수' | '적정 매수' | '유지' | '적정 매도' | '추가 매도' | '매도'; // 백엔드와 동일하게 '매수', '매도' 추가
     confidence: number;
 }
 
