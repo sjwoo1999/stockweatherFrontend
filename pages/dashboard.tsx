@@ -1,15 +1,15 @@
 // stockweather-frontend/src/pages/dashboard.tsx
 
-import React, { useEffect, useState, useCallback, useContext } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import axiosInstance from '../api/axiosInstance';
 import axios from 'axios';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Image from 'next/image';
 import { FaSearch, FaArrowRight } from 'react-icons/fa';
-import { SocketContext } from '../pages/_app'; // _app.tsx에서 정의한 Context를 임포트
 
-// User 인터페이스 (기존 그대로 사용)
+import { useSocket } from '../contexts/SocketContext'; // 새로운 경로에서 임포트
+
 interface User {
   id: number;
   kakaoId: string;
@@ -28,84 +28,38 @@ function DashboardPage() {
     const [recentSearches, setRecentSearches] = useState<string[]>([]);
 
     const router = useRouter();
+    const { socket, socketId, socketConnected, setRequestingSocketId } = useSocket(); // clearProcessingResult 제거
 
-    // SocketContext에서 소켓 정보 가져오기
-    const { socket, socketId, socketConnected } = useContext(SocketContext);
-
-    // 로그아웃 함수 (useCallback으로 래핑하여 의존성 문제 해결)
-    const handleLogout = useCallback(() => {
-        if (typeof window !== 'undefined') {
-            localStorage.removeItem('jwtToken');
-            const KAKAO_LOGOUT_REDIRECT_URI = process.env.NEXT_PUBLIC_KAKAO_LOGOUT_REDIRECT_URI || 'http://localhost:3001/login';
-            const KAKAO_AUTH_LOGOUT_URL = `https://kauth.kakao.com/oauth/logout?client_id=${process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID}&logout_redirect_uri=${encodeURIComponent(KAKAO_LOGOUT_REDIRECT_URI)}`;
-
-            window.location.href = KAKAO_AUTH_LOGOUT_URL;
-        }
-    }, []); // 의존성 없음
-
-    // 사용자 프로필 및 최근 검색어 불러오는 함수 (useCallback으로 래핑)
     const fetchUserProfileAndRecentSearches = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
 
-            // 1. 사용자 프로필 불러오기
-            console.log('Fetching user profile...');
             const userResponse = await axiosInstance.get<User>('/users/me');
-            console.log('User profile API response data:', userResponse.data);
             setUser(userResponse.data);
-            console.log('User profile set:', userResponse.data.nickname);
 
-            // 2. 최근 검색어 불러오기 (JSON.parse 에러 핸들링 강화)
             const storedSearches = localStorage.getItem('recentSearches');
-            console.log('Raw recent searches from localStorage:', storedSearches); // 로컬 스토리지에서 가져온 원본 데이터 로깅
-
             if (storedSearches) {
-                try {
-                    const parsedSearches = JSON.parse(storedSearches);
-                    // 배열인지 확인하는 추가적인 검사
-                    if (Array.isArray(parsedSearches)) {
-                        setRecentSearches(parsedSearches);
-                        console.log('Parsed recent searches from localStorage:', parsedSearches);
-                    } else {
-                        console.warn('LocalStorage "recentSearches" is not an array. Clearing it.');
-                        setRecentSearches([]);
-                        localStorage.removeItem('recentSearches'); // 비정상적인 데이터 제거
-                    }
-                } catch (parseError) {
-                    console.error('Failed to parse recent searches from localStorage:', parseError);
-                    // 파싱 실패 시 해당 데이터를 무시하고 초기화
-                    setRecentSearches([]);
-                    localStorage.removeItem('recentSearches'); // 잘못된 데이터 제거
-                    setError('최근 검색 기록을 불러오는 중 오류가 발생했습니다. 기록이 초기화됩니다.'); // 사용자에게 알림
-                }
-            } else {
-                setRecentSearches([]); // 저장된 검색어가 없으면 빈 배열로 초기화
-                console.log('No recent searches found in localStorage.');
+                setRecentSearches(JSON.parse(storedSearches));
             }
         } catch (err) {
             console.error('Fetch user profile or recent searches error:', err);
             if (axios.isAxiosError(err)) {
-                console.error('Axios error response (from fetchUserProfileAndRecentSearches):', err.response);
                 if (err.response?.status === 401) {
                     console.log("401 에러 발생: 토큰 만료 또는 유효하지 않음. 강제 로그아웃 처리.");
-                    handleLogout(); // 로그아웃 함수 호출
+                    handleLogout();
                 } else {
                     setError(err.response?.data?.message || err.message);
                 }
             } else {
-                // Axios 에러가 아닌 경우의 일반적인 에러 처리
-                console.error('Non-Axios error during data fetch:', err);
                 setError('사용자 정보를 불러오는 중 알 수 없는 오류가 발생했습니다.');
             }
         } finally {
             setLoading(false);
         }
-    }, [handleLogout]); // handleLogout이 useCallback으로 래핑되었으므로 의존성 배열에 추가
+    }, []);
 
-    // 사용자 정보 로딩을 처리하는 useEffect
     useEffect(() => {
-        // 클라이언트 사이드에서만 실행
         if (typeof window === 'undefined') {
             setLoading(false);
             return;
@@ -118,13 +72,25 @@ function DashboardPage() {
             return;
         }
 
-        // 사용자 프로필 및 최근 검색어 불러오기
         fetchUserProfileAndRecentSearches();
 
-        return () => {
-            // Cleanup functions specific to Dashboard if any, but not socket related.
-        };
-    }, [router, fetchUserProfileAndRecentSearches]); // 의존성 배열에 router, fetchUserProfileAndRecentSearches 추가
+        // ⭐ 변경: DashboardPage 언마운트 시 clearProcessingResult 호출 제거 ⭐
+        // 이제 requestingSocketId는 stock-result.tsx에서만 초기화됩니다.
+        // DashboardPage는 오직 요청을 시작하는 역할만 수행합니다.
+        // return () => {
+        //     clearProcessingResult();
+        // };
+
+    }, [router, fetchUserProfileAndRecentSearches]);
+
+    const handleLogout = () => {
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('jwtToken');
+            const KAKAO_LOGOUT_REDIRECT_URI = process.env.NEXT_PUBLIC_KAKAO_LOGOUT_REDIRECT_URI || 'http://localhost:3001/login';
+            const KAKAO_AUTH_LOGOUT_URL = `https://kauth.kakao.com/oauth/logout?client_id=${process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID}&logout_redirect_uri=${encodeURIComponent(KAKAO_LOGOUT_REDIRECT_URI)}`;
+            window.location.href = KAKAO_AUTH_LOGOUT_URL;
+        }
+    };
 
     const handleSearch = async () => {
         if (!searchTerm.trim()) {
@@ -132,14 +98,13 @@ function DashboardPage() {
             return;
         }
 
-        if (!socket || !socketConnected || !socketId) {
+        if (!socketConnected || !socket || !socketId) {
             setError('서버와 실시간 연결이 불안정합니다. 잠시 후 다시 시도해주세요.');
             return;
         }
 
         setError(null);
         const query = searchTerm.trim();
-        const currentSocketId = socketId;
 
         try {
             const token = localStorage.getItem('jwtToken');
@@ -147,12 +112,16 @@ function DashboardPage() {
                 throw new Error('인증 토큰이 없습니다. 다시 로그인해주세요.');
             }
 
-            console.log(`Sending search request for "${query}" with socketId: ${currentSocketId}`);
+            // ⭐ 검색 요청 시 현재 사용될 socketId를 전역 상태에 저장 ⭐
+            // 이 시점에서는 socketId가 유효하게 설정되어 있습니다.
+            setRequestingSocketId(socketId);
+            console.log(`Dashboard: Setting requestingSocketId to ${socketId} for query "${query}"`);
+
             await axiosInstance.post(
                 '/api/search',
                 {
                     query: query,
-                    socketId: currentSocketId,
+                    socketId: socketId,
                 },
                 {
                     headers: {
@@ -162,17 +131,11 @@ function DashboardPage() {
             );
             console.log(`HTTP search request sent for "${query}". Redirecting to /stock-result...`);
 
-            // 검색 성공 시 최근 검색어 업데이트
-            const updatedRecentSearches = [query, ...recentSearches.filter(item => item !== query)].slice(0, 5); // 최대 5개 유지
-            setRecentSearches(updatedRecentSearches);
-            localStorage.setItem('recentSearches', JSON.stringify(updatedRecentSearches)); // 로컬 스토리지에 저장
-
-            router.push(`/stock-result?query=${encodeURIComponent(query)}&socketId=${currentSocketId}`);
+            router.push(`/stock-result?query=${encodeURIComponent(query)}&socketId=${encodeURIComponent(socketId)}`);
 
         } catch (err) {
             console.error('Error sending search request from Dashboard:', err);
             if (axios.isAxiosError(err)) {
-                console.error('Axios error response (from handleSearch):', err.response);
                 if (err.response?.status === 401) {
                     setError('세션이 만료되었습니다. 다시 로그인해주세요.');
                     handleLogout();
@@ -180,7 +143,6 @@ function DashboardPage() {
                     setError(`검색 요청 실패: ${err.response?.data?.message || err.message}`);
                 }
             } else {
-                console.error('Non-Axios error during search request:', err);
                 setError(`검색 요청 중 알 수 없는 오류가 발생했습니다: ${err}`);
             }
         }
@@ -197,7 +159,7 @@ function DashboardPage() {
         handleSearch();
     };
 
-    // 로딩 및 에러 UI
+    // 로딩 UI
     if (loading) {
         return (
             <div className="min-h-screen bg-brand-light flex justify-center items-center font-body text-text-default">
@@ -215,6 +177,7 @@ function DashboardPage() {
         );
     }
 
+    // 에러 UI
     if (error) {
         return (
             <div className="min-h-screen bg-brand-light flex justify-center items-center font-body text-text-default">
@@ -233,6 +196,7 @@ function DashboardPage() {
         );
     }
 
+    // 사용자 정보 없음 UI
     if (!user) {
         return (
             <div className="min-h-screen bg-brand-light flex justify-center items-center font-body text-text-default">
@@ -271,8 +235,7 @@ function DashboardPage() {
                                 style={{ objectFit: 'cover' }}
                                 onError={(e) => {
                                     console.error("Error loading profile image:", e);
-                                    // 이미지 로드 실패 시 대체 이미지 또는 아무것도 표시하지 않음
-                                    e.currentTarget.src = '/default-profile.png'; // 예시: 기본 이미지 경로
+                                    e.currentTarget.src = '/default-profile.png';
                                 }}
                             />
                         </div>
@@ -335,6 +298,12 @@ function DashboardPage() {
                 >
                     로그아웃
                 </button>
+
+                {/* 소켓 연결 상태 표시 (디버깅용, 필요 시 제거) */}
+                <p className="mt-4 text-xs text-text-muted text-center">
+                    소켓 연결 상태: {socketConnected ? '연결됨' : '연결 끊김'}
+                    {socketId && ` (ID: ${socketId})`}
+                </p>
             </div>
         </div>
     );
