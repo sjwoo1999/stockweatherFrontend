@@ -72,11 +72,50 @@ export interface KeywordSentiment {
   
   // 서버 -> 클라이언트 이벤트 정의
   export interface ServerToClientEvents {
+    noArg: () => void;
+    basicEmit: (a: number, b: string) => void;
+    withAck: (d: string, callback: (e: number) => void) => void;
+  
+    // 서버 -> 클라이언트 진행 상황 업데이트
     analysisProgress: (data: AnalysisProgressData) => void;
-    processingComplete: (data: StockWeatherResponseDto | { error: string, query?: string, socketId?: string }) => void;
+    // 서버 -> 클라이언트 최종 결과
+    processingComplete: (data: StockWeatherResponseDto) => void;
+  
+    // 'error' 이벤트를 명시적으로 추가
+    'error': (error: Error) => void;
   }
   
-  // 클라이언트 -> 서버 이벤트 정의 (현재 사용되지 않지만 정의)
+  // 클라이언트 -> 서버 이벤트 정의
   export interface ClientToServerEvents {
     // noop: () => void; // 예시: 클라이언트에서 백엔드로 보내는 이벤트가 있다면 여기에 정의
+  }
+  
+  // my-detail.tsx에서 사용될 StockDetail 인터페이스
+  export interface StockDetail {
+    name: string;
+    emoji: string;
+    color: string; // Tailwind CSS class name (e.g., 'text-red-500')
+    signal: string; // (e.g., '매수', '매도', '유지')
+    percent: string; // (e.g., '+5.2%', '-1.3%')
+  }
+  
+  // my-summary.tsx에서 사용될 StockSummary 인터페이스
+  export interface StockSummary {
+    date: string; // 예: "2023-10-27"
+    overallSentiment: string; // 예: "전반적으로 긍정적입니다."
+    stocks: { // 각 종목의 요약을 담는 배열
+      name: string;
+      summary: string; // 종목별 요약 텍스트
+    }[];
+  }
+  
+  // ⭐ 새로 추가될 StockSearchResult 인터페이스 ⭐
+  // searchStock 함수가 단일 객체를 반환하므로, 해당 객체의 구조를 가정합니다.
+  // 이는 검색 성공 시 반환될 수 있는 단일 종목의 기본 정보일 가능성이 높습니다.
+  // 만약 검색 API가 여러 결과를 배열로 반환한다면, Promise<StockSearchResult[]>로 수정해야 합니다.
+  export interface StockSearchResult {
+    name: string; // 검색된 종목의 이름
+    symbol?: string; // 종목 코드/심볼 (예: "005930", "AAPL")
+    // 여기에 백엔드 검색 API의 응답에 따라 필요한 다른 필드를 추가할 수 있습니다.
+    // 예를 들어, isFound: boolean; message?: string; 등.
   }
