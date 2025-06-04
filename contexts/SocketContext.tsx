@@ -69,7 +69,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
 
-    // ⭐ 첫 번째 수정: socket.auth 타입 에러 해결 ⭐
+    // ⭐ socket.auth 타입 에러 해결 ⭐
     if (socketRef.current && socketRef.current.connected) {
       const currentAuth = socketRef.current.auth;
       // currentAuth가 존재하고, 객체이며, 'token' 속성을 가지고 있는지 확인
@@ -77,7 +77,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.log('Socket.IO 인스턴스 이미 존재하고 연결됨 (재활용):', socketRef.current.id);
         setSocket(socketRef.current);
         setSocketConnected(true);
-        // ⭐ 두 번째 수정: socket.id가 undefined일 수 있는 경우 처리 ⭐
+        // ⭐ socket.id가 undefined일 수 있는 경우 처리 ⭐
         setSocketId(socketRef.current.id || null); // id가 undefined일 경우 null로 대체
         return;
       }
@@ -102,7 +102,6 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     currentSocketInstance.on('connect', () => {
         console.log('Socket.IO 연결 성공! ID:', currentSocketInstance.id);
         setSocketConnected(true);
-        // ⭐ 두 번째 수정 (반복): socket.id가 undefined일 수 있는 경우 처리 ⭐
         setSocketId(currentSocketInstance.id || null); // id가 undefined일 경우 null로 대체
     });
 
@@ -123,8 +122,9 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
     currentSocketInstance.on('connect_error', handleSocketError);
 
-    currentSocketInstance.off('error');
-    currentSocketInstance.on('error', handleSocketError);
+    // ⭐ 새로운 수정: 'error' 이벤트를 .off()에서 제거 (타입 에러 해결) ⭐
+    // currentSocketInstance.off('error'); // 이 줄을 제거하거나 주석 처리합니다.
+    currentSocketInstance.on('error', handleSocketError); // 일반적인 소켓 에러를 처리합니다.
 
     currentSocketInstance.off('analysisProgress');
     currentSocketInstance.on('analysisProgress', (data: AnalysisProgressData) => {
@@ -159,7 +159,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         currentSocket.off('connect');
         currentSocket.off('disconnect');
         currentSocket.off('connect_error');
-        currentSocket.off('error');
+        // 'error' 리스너도 cleanup 시점에 명시적으로 제거하는 것이 좋습니다.
+        currentSocket.off('error', handleSocketError); // handleSocketError 함수를 지정하여 특정 리스너 제거
         currentSocket.off('analysisProgress');
         currentSocket.off('processingComplete');
       }
