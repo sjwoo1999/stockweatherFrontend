@@ -69,7 +69,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
 
-    // ⭐ 수정된 부분: socketRef.current.auth?.token 접근 로직 개선 ⭐
+    // ⭐ 첫 번째 수정: socket.auth 타입 에러 해결 ⭐
     if (socketRef.current && socketRef.current.connected) {
       const currentAuth = socketRef.current.auth;
       // currentAuth가 존재하고, 객체이며, 'token' 속성을 가지고 있는지 확인
@@ -77,7 +77,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.log('Socket.IO 인스턴스 이미 존재하고 연결됨 (재활용):', socketRef.current.id);
         setSocket(socketRef.current);
         setSocketConnected(true);
-        setSocketId(socketRef.current.id);
+        // ⭐ 두 번째 수정: socket.id가 undefined일 수 있는 경우 처리 ⭐
+        setSocketId(socketRef.current.id || null); // id가 undefined일 경우 null로 대체
         return;
       }
     }
@@ -101,7 +102,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     currentSocketInstance.on('connect', () => {
         console.log('Socket.IO 연결 성공! ID:', currentSocketInstance.id);
         setSocketConnected(true);
-        setSocketId(currentSocketInstance.id);
+        // ⭐ 두 번째 수정 (반복): socket.id가 undefined일 수 있는 경우 처리 ⭐
+        setSocketId(currentSocketInstance.id || null); // id가 undefined일 경우 null로 대체
     });
 
     currentSocketInstance.off('disconnect');
@@ -162,7 +164,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         currentSocket.off('processingComplete');
       }
     };
-  }, [socketUrl, clearProcessingResult]);
+  }, [socketUrl, clearProcessingResult]); // clearProcessingResult는 useCallback으로 안정화됨
 
   useEffect(() => {
     console.log('SocketProvider: requestingSocketId updated to', requestingSocketId);
