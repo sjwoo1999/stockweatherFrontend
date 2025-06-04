@@ -1,6 +1,6 @@
 // stockweather-frontend/src/contexts/SocketContext.tsx
 
-import React, { createContext, useContext, useEffect, useRef, useState, ReactNode, useCallback } from 'react'; // ⭐ useCallback 임포트 ⭐
+import React, { createContext, useContext, useEffect, useRef, useState, ReactNode, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 
 import {
@@ -41,12 +41,12 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       requestingSocketIdRef.current = requestingSocketId;
   }, [requestingSocketId]);
 
-  // ⭐ clearProcessingResult 함수를 useCallback으로 래핑 ⭐
+  // 분석 결과 및 진행 상태를 초기화하는 함수
   const clearProcessingResult = useCallback(() => {
     setAnalysisStatus(null);
     setProcessingResult(null);
     setRequestingSocketId(null);
-  }, []); // 의존성 배열이 비어 있으므로 함수는 변경되지 않습니다.
+  }, []); // 의존성 배열이 비어 있으므로 함수는 한 번만 생성됩니다.
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -69,12 +69,17 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
 
-    if (socketRef.current && socketRef.current.connected && socketRef.current.auth?.token === storedToken) {
-      console.log('Socket.IO 인스턴스 이미 존재하고 연결됨 (재활용):', socketRef.current.id);
-      setSocket(socketRef.current);
-      setSocketConnected(true);
-      setSocketId(socketRef.current.id);
-      return;
+    // ⭐ 수정된 부분: socketRef.current.auth?.token 접근 로직 개선 ⭐
+    if (socketRef.current && socketRef.current.connected) {
+      const currentAuth = socketRef.current.auth;
+      // currentAuth가 존재하고, 객체이며, 'token' 속성을 가지고 있는지 확인
+      if (currentAuth && typeof currentAuth === 'object' && 'token' in currentAuth && currentAuth.token === storedToken) {
+        console.log('Socket.IO 인스턴스 이미 존재하고 연결됨 (재활용):', socketRef.current.id);
+        setSocket(socketRef.current);
+        setSocketConnected(true);
+        setSocketId(socketRef.current.id);
+        return;
+      }
     }
 
     console.log('Socket.IO 인스턴스 생성 또는 재연결 시도 시작...');
@@ -157,7 +162,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         currentSocket.off('processingComplete');
       }
     };
-  }, [socketUrl, clearProcessingResult]); // ⭐ clearProcessingResult를 의존성 배열에 추가 ⭐
+  }, [socketUrl, clearProcessingResult]);
 
   useEffect(() => {
     console.log('SocketProvider: requestingSocketId updated to', requestingSocketId);
