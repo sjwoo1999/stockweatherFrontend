@@ -300,10 +300,10 @@ function DashboardPage() {
                 </button>
 
                 {/* 소켓 연결 상태 표시 (디버깅용, 필요 시 제거) */}
-                <p className="mt-4 text-xs text-text-muted text-center">
+                {/*<p className="mt-4 text-xs text-text-muted text-center">
                     소켓 연결 상태: {socketConnected ? '연결됨' : '연결 끊김'}
                     {socketId && ` (ID: ${socketId})`}
-                </p>
+                </p>*/}
             </div>
         </div>
     );
