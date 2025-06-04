@@ -7,29 +7,82 @@ import Image from 'next/image';
 import axios from 'axios';
 import { SocketContext } from '../pages/_app'; // _app.tsx에서 정의한 Context를 임포트
 
+// --- 백엔드의 types/stock.ts와 동기화된 DTO 인터페이스 정의 ---
+// 중요: 이 부분은 백엔드 `stockweather-backend/src/types/stock.ts`와 동일하게 유지해야 합니다.
+// 가능하면 하나의 공유된 타입 파일을 사용하는 것이 가장 좋습니다.
+
+export interface KeywordSentiment {
+    text: string;
+    sentiment: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL';
+}
+
+export interface InvestmentOpinion {
+    // 백엔드의 InvestmentOpinion과 일치
+    opinion: '매수' | '적정 매수' | '관망' | '적정 매도' | '매도';
+    confidence: number; // 0.0 ~ 1.0
+    reason?: string; // 백엔드에서 추가된 reason 필드 반영 (사용하지 않더라도 타입 정의에 포함)
+}
+
+export interface RelatedStock {
+    name: string;
+    // 백엔드의 RelatedStock과 일치 (여기서 opinion 필드는 백엔드와 다를 수 있으니 확인 필요)
+    // 백엔드 RelatedStock 인터페이스에 opinion 필드가 없으면 여기서 제거하거나,
+    // 백엔드에서 opinion과 confidence를 추가해야 합니다.
+    // 현재 백엔드 RelatedStock은 name과 relationship만 있습니다.
+    // 일단 백엔드에 맞춰 수정하겠습니다.
+    relationship?: string; // 백엔드의 relatedStocks에 있는 relationship 필드 반영 (사용하지 않더라도 타입 정의에 포함)
+}
+
+export interface NewsArticleSummary {
+    title: string;
+    summary: string;
+    url: string;
+    thumbnailUrl?: string;
+    // 백엔드의 NewsArticleSummary의 sentiment와 일치
+    sentiment?: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL' | 'UNKNOWN';
+}
+
+// 백엔드의 StockData 인터페이스에 해당하는 프론트엔드용 인터페이스
+export interface StockData {
+    name: string;
+    weatherSummary: string;
+    overallSentiment: 'VERY_POSITIVE' | 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE' | 'VERY_NEGATIVE' | 'UNKNOWN';
+    sentimentScore: number; // 백엔드에 존재
+    keywords: string[]; // 🚨 수정: AIAnalysisResult에서 keywords는 string[] 입니다. KeywordSentiment[]가 아님.
+    reportSummary: string;
+    articles: NewsArticleSummary[]; // 요약된 기사 목록 (5개)
+    // 🚨 중요 수정: detailedAnalysis 필드를 백엔드와 동일한 객체 타입으로 변경
+    detailedAnalysis: {
+        positiveFactors: string;
+        negativeFactors: string;
+        neutralFactors: string;
+        overallOpinion: string;
+    };
+    investmentOpinion: InvestmentOpinion;
+    relatedStocks: RelatedStock[];
+    overallNewsSummary?: string; // 전체 뉴스 요약 (백엔드에 존재)
+}
+
+// 최종적으로 클라이언트에 전송될 DTO (WebSocket 응답 형식)
+export interface StockWeatherResponseDto {
+    stock: StockData; // StockData 인터페이스 사용
+    weatherIcon: 'sunny' | 'partly-cloudy' | 'cloudy' | 'rainy' | 'stormy' | 'unknown';
+    timestamp: string; // 백엔드에 존재
+    disclaimer: string;
+    error?: string; // 에러 메시지
+    query?: string; // 검색 쿼리
+    newsCount?: number; // 백엔드에 존재
+    socketId?: string; // 백엔드에 존재
+}
+// --- DTO 인터페이스 정의 끝 ---
+
+
 // Socket.IO 이벤트 타입 정의 (이제 _app.tsx에서 정의된 타입을 사용)
 interface AnalysisProgressData {
     status: string;
     message: string;
     query: string;
     socketId: string;
-}
-
-interface StockWeatherResponseDto {
-    // 실제 DTO 구조에 맞춰 정의
-    stock: {
-        name: string;
-        weatherSummary: string;
-        reportSummary: string;
-        detailedAnalysis: string;
-        investmentOpinion: { opinion: string; confidence: number };
-        keywords: { text: string; sentiment: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL' }[];
-        relatedStocks: { name: string; opinion: string; confidence: number }[];
-    };
-    articles: { title: string; url: string; summary: string; thumbnailUrl?: string }[];
-    weatherIcon: 'sunny' | 'partly-cloudy' | 'cloudy' | 'rainy' | 'stormy' | 'unknown';
-    disclaimer: string;
-    socketId?: string; // 백엔드에서 socketId를 포함하여 보내는 경우를 대비
 }
 
 // 로딩 스피너 컴포넌트
@@ -140,12 +193,30 @@ function StockResultPage() {
             console.log('processingComplete 수신:', data);
             setLoading(false); // 로딩 종료
 
+            // 🚨 디버깅을 위한 로그 추가: 수신된 기사 데이터 확인
+            if ('stock' in data && data.stock && data.stock.articles) {
+                console.log(`[stock-result.tsx] Received articles count: ${data.stock.articles.length}`);
+                if (data.stock.articles.length > 0) {
+                    console.log(`[stock-result.tsx] First received article:`, data.stock.articles[0]);
+                }
+            } else {
+                console.log(`[stock-result.tsx] No stock or articles data in received response:`, data);
+            }
+
             // 백엔드에서 받은 socketId가 이 페이지를 연 요청의 socketId와 일치하는지 확인
             if ('socketId' in data && data.socketId === requestSocketId) {
                 if ('error' in data && data.error) {
+                    // 백엔드에서 명시적으로 에러를 보낸 경우 (예: 서버 내부 오류)
                     setError(data.error);
                     setLoadingMessage(`오류 발생: ${data.error}`);
+                } else if ('stock' in data && data.stock && data.stock.newsCount === 0) {
+                    // 🚨 수정된 로직: 뉴스가 없는 경우 (백엔드에서 error 필드 없이 보냄)
+                    // 이 경우 StockService에서 설정한 메시지를 사용하거나, 별도의 메시지를 표시
+                    const noNewsMessage = data.stock.reportSummary || '관련 뉴스 기사를 찾을 수 없습니다.';
+                    setError(noNewsMessage); // 에러 상태로 처리하여 별도의 UI를 띄움
+                    setLoadingMessage(`분석 불가: ${noNewsMessage}`);
                 } else {
+                    // 정상적인 분석 결과가 있는 경우
                     setStockAnalysisResult(data as StockWeatherResponseDto);
                     setLoadingMessage('분석 완료!');
                     setError(null);
@@ -207,6 +278,7 @@ function StockResultPage() {
         return <LoadingSpinner message={loadingMessage} />;
     }
 
+    // 🚨 수정된 부분: 에러 발생 시의 UI (뉴스 부족 상황 포함)
     if (error) {
         return (
             <div className="min-h-screen bg-brand-light flex justify-center items-center font-body text-text-default">
@@ -225,7 +297,7 @@ function StockResultPage() {
         );
     }
 
-    // 분석 결과가 없으면 (데이터 수신 실패 등)
+    // 분석 결과가 없으면 (데이터 수신 실패 등 - 사실상 위 error 처리로 대부분 커버됨)
     if (!stockAnalysisResult) {
         return (
             <div className="min-h-screen bg-brand-light flex justify-center items-center font-body text-text-default">
@@ -277,15 +349,24 @@ function StockResultPage() {
 
                 <div className="mb-6">
                     <h4 className="text-lg font-heading text-brand-dark mb-2 border-b border-surface-subtle pb-1">AI 투자 조언</h4>
+                    {/* 🚨 수정된 부분: detailedAnalysis는 이제 객체이므로 내부 필드에 접근합니다. */}
                     <p className="text-text-default text-sm leading-relaxed whitespace-pre-wrap">
-                        {stockAnalysisResult.stock.detailedAnalysis}
+                        <strong>긍정 요인:</strong> {stockAnalysisResult.stock.detailedAnalysis.positiveFactors}<br />
+                        <strong>부정 요인:</strong> {stockAnalysisResult.stock.detailedAnalysis.negativeFactors}<br />
+                        <strong>중립 요인:</strong> {stockAnalysisResult.stock.detailedAnalysis.neutralFactors}<br />
+                        <br />
+                        <strong>종합 의견:</strong> {stockAnalysisResult.stock.detailedAnalysis.overallOpinion}
                     </p>
                     <div className="mt-3 text-sm text-text-muted">
                         <p><strong>의견:</strong> {stockAnalysisResult.stock.investmentOpinion.opinion}</p>
                         <p><strong>신뢰도:</strong> {(stockAnalysisResult.stock.investmentOpinion.confidence * 100).toFixed(0)}%</p>
+                        {stockAnalysisResult.stock.investmentOpinion.reason && (
+                            <p><strong>이유:</strong> {stockAnalysisResult.stock.investmentOpinion.reason}</p>
+                        )}
                     </div>
                 </div>
 
+                {/* 🚨 수정된 부분: keywords는 string[] 이므로, sentiment 관련 코드는 제거 */}
                 {stockAnalysisResult.stock.keywords && stockAnalysisResult.stock.keywords.length > 0 && (
                     <div className="mb-6">
                         <h4 className="text-lg font-heading text-brand-dark mb-2 border-b border-surface-subtle pb-1">핵심 키워드</h4>
@@ -293,24 +374,20 @@ function StockResultPage() {
                             {stockAnalysisResult.stock.keywords.map((keyword, index) => (
                                 <span
                                     key={index}
-                                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                        keyword.sentiment === 'POSITIVE' ? 'bg-green-100 text-green-700' :
-                                        keyword.sentiment === 'NEGATIVE' ? 'bg-red-100 text-red-700' :
-                                        'bg-gray-100 text-gray-700'
-                                    }`}
+                                    className={`px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700`} // 키워드에 색상 없음
                                 >
-                                    {keyword.text}
+                                    {keyword}
                                 </span>
                             ))}
                         </div>
                     </div>
                 )}
 
-                {stockAnalysisResult.articles && stockAnalysisResult.articles.length > 0 && (
+                {stockAnalysisResult.stock.articles && stockAnalysisResult.stock.articles.length > 0 ? ( // stock.articles로 접근
                     <div className="mb-6">
                         <h4 className="text-lg font-heading text-brand-dark mb-2 border-b border-surface-subtle pb-1">관련 뉴스 요약 (TOP 5)</h4>
                         <div className="space-y-4">
-                            {stockAnalysisResult.articles.map((article, index) => (
+                            {stockAnalysisResult.stock.articles.map((article, index) => ( // stock.articles로 접근
                                 <a
                                     key={index}
                                     href={article.url}
@@ -339,20 +416,41 @@ function StockResultPage() {
                             ))}
                         </div>
                     </div>
+                ) : ( // 기사 없을 때 표시되는 메시지 (이 부분은 위 에러 처리로 대부분 대체됨)
+                    <div className="mb-6">
+                        <h4 className="text-lg font-heading text-brand-dark mb-2 border-b border-surface-subtle pb-1">관련 뉴스 요약</h4>
+                        <p className="text-text-muted text-sm leading-relaxed">
+                            분석에 필요한 뉴스 기사가 부족합니다.
+                        </p>
+                    </div>
                 )}
 
+
+                {/* 🚨 수정된 부분: RelatedStock 인터페이스 변경에 따라 relStock.opinion/confidence 제거 */}
                 {stockAnalysisResult.stock.relatedStocks && stockAnalysisResult.stock.relatedStocks.length > 0 && (
                     <div className="mb-6">
                         <h4 className="text-lg font-heading text-brand-dark mb-2 border-b border-surface-subtle pb-1">관련 종목</h4>
                         <ul className="list-disc list-inside text-text-default text-sm">
                             {stockAnalysisResult.stock.relatedStocks.map((relStock, index) => (
                                 <li key={index}>
-                                    <strong>{relStock.name}:</strong> {relStock.opinion} (신뢰도: {(relStock.confidence * 100).toFixed(0)}%)
+                                    <strong>{relStock.name}:</strong>
+                                    {relStock.relationship && ( // relationship 필드 표시 (백엔드에 존재한다면)
+                                        <span className="ml-1 text-xs text-text-muted">({relStock.relationship})</span>
+                                    )}
                                 </li>
                             ))}
                         </ul>
                     </div>
                 )}
+                {stockAnalysisResult.stock.overallNewsSummary && (
+                    <div className="mb-6">
+                        <h4 className="text-lg font-heading text-brand-dark mb-2 border-b border-surface-subtle pb-1">종합 뉴스 요약</h4>
+                        <p className="text-text-default text-sm leading-relaxed whitespace-pre-wrap">
+                            {stockAnalysisResult.stock.overallNewsSummary}
+                        </p>
+                    </div>
+                )}
+
 
                 <p className="text-xs text-text-muted text-center mt-4">
                     {stockAnalysisResult.disclaimer}
