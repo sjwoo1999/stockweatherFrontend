@@ -50,16 +50,16 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   useEffect(() => {
     if (typeof window === 'undefined') {
-      console.log('Socket.IO: SSR 환경. 연결 시도 안함.');
+      // console.log('Socket.IO: SSR 환경. 연결 시도 안함.');
       return;
     }
 
     const storedToken = localStorage.getItem('jwtToken');
 
     if (!storedToken) {
-      console.log('Socket.IO: JWT 토큰 없음. 연결 시도 안함.');
+      // console.log('Socket.IO: JWT 토큰 없음. 연결 시도 안함.');
       if (socketRef.current && socketRef.current.connected) {
-        console.log('Socket.IO: 토큰이 없어 기존 연결을 끊습니다.');
+        // console.log('Socket.IO: 토큰이 없어 기존 연결을 끊습니다.');
         socketRef.current.disconnect();
       }
       socketRef.current = null;
@@ -74,7 +74,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const currentAuth = socketRef.current.auth;
       // currentAuth가 존재하고, 객체이며, 'token' 속성을 가지고 있는지 확인
       if (currentAuth && typeof currentAuth === 'object' && 'token' in currentAuth && currentAuth.token === storedToken) {
-        console.log('Socket.IO 인스턴스 이미 존재하고 연결됨 (재활용):', socketRef.current.id);
+        // console.log('Socket.IO 인스턴스 이미 존재하고 연결됨 (재활용):', socketRef.current.id);
         setSocket(socketRef.current);
         setSocketConnected(true);
         // ⭐ socket.id가 undefined일 수 있는 경우 처리 ⭐
@@ -83,7 +83,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     }
 
-    console.log('Socket.IO 인스턴스 생성 또는 재연결 시도 시작...');
+    // console.log('Socket.IO 인스턴스 생성 또는 재연결 시도 시작...');
     const newSocket = io(socketUrl, {
       auth: { token: storedToken },
       transports: ['websocket', 'polling'],
@@ -100,14 +100,14 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     currentSocketInstance.off('connect');
     currentSocketInstance.on('connect', () => {
-        console.log('Socket.IO 연결 성공! ID:', currentSocketInstance.id);
+        // console.log('Socket.IO 연결 성공! ID:', currentSocketInstance.id);
         setSocketConnected(true);
         setSocketId(currentSocketInstance.id || null); // id가 undefined일 경우 null로 대체
     });
 
     currentSocketInstance.off('disconnect');
     currentSocketInstance.on('disconnect', (reason) => {
-        console.log('Socket.IO 연결 해제됨:', reason);
+        // console.log('Socket.IO 연결 해제됨:', reason);
         setSocketConnected(false);
         setSocketId(null);
         clearProcessingResult();
@@ -115,7 +115,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     currentSocketInstance.off('connect_error');
     const handleSocketError = (err: Error) => {
-        console.error('Socket.IO 연결 또는 내부 오류:', err.message, err);
+        // console.error('Socket.IO 연결 또는 내부 오류:', err.message, err);
         setSocketConnected(false);
         setSocketId(null);
         clearProcessingResult();
@@ -128,18 +128,18 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     currentSocketInstance.off('analysisProgress');
     currentSocketInstance.on('analysisProgress', (data: AnalysisProgressData) => {
-        console.log('Received analysisProgress in SocketProvider:', data);
+        // console.log('Received analysisProgress in SocketProvider:', data);
         if (data.socketId === requestingSocketIdRef.current) {
             setAnalysisStatus(data);
             setProcessingResult(null); 
         } else {
-            console.log(`SocketProvider: Ignoring analysisProgress from non-matching socketId: ${data.socketId}, current requesting: ${requestingSocketIdRef.current}`);
+            // console.log(`SocketProvider: Ignoring analysisProgress from non-matching socketId: ${data.socketId}, current requesting: ${requestingSocketIdRef.current}`);
         }
     });
 
     currentSocketInstance.off('processingComplete');
     currentSocketInstance.on('processingComplete', (data: StockWeatherResponseDto | { error: string, query?: string, socketId?: string }) => {
-        console.log('Received processingComplete in SocketProvider:', data);
+        // console.log('Received processingComplete in SocketProvider:', data);
         if (data.socketId === requestingSocketIdRef.current) {
             if (data.error) {
                 setProcessingResult({ ...data as StockWeatherResponseDto, error: data.error });
@@ -148,14 +148,14 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             }
             setAnalysisStatus(null);
         } else {
-            console.log(`SocketProvider: Ignoring processingComplete from non-matching socketId: ${data.socketId}, current requesting: ${requestingSocketIdRef.current}`);
+            // console.log(`SocketProvider: Ignoring processingComplete from non-matching socketId: ${data.socketId}, current requesting: ${requestingSocketIdRef.current}`);
         }
     });
 
     return () => {
       const currentSocket = socketRef.current;
       if (currentSocket) {
-        console.log('Socket.IO SocketProvider cleanup: Removing listeners for:', currentSocket.id);
+        // console.log('Socket.IO SocketProvider cleanup: Removing listeners for:', currentSocket.id);
         currentSocket.off('connect');
         currentSocket.off('disconnect');
         currentSocket.off('connect_error');
@@ -168,7 +168,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [socketUrl, clearProcessingResult]); // clearProcessingResult는 useCallback으로 안정화됨
 
   useEffect(() => {
-    console.log('SocketProvider: requestingSocketId updated to', requestingSocketId);
+    // console.log('SocketProvider: requestingSocketId updated to', requestingSocketId);
   }, [requestingSocketId]);
 
   return (

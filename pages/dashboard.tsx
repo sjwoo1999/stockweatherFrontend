@@ -43,10 +43,10 @@ function DashboardPage() {
                 setRecentSearches(JSON.parse(storedSearches));
             }
         } catch (err) {
-            console.error('Fetch user profile or recent searches error:', err);
+            // console.error('Fetch user profile or recent searches error:', err);
             if (axios.isAxiosError(err)) {
                 if (err.response?.status === 401) {
-                    console.log("401 에러 발생: 토큰 만료 또는 유효하지 않음. 강제 로그아웃 처리.");
+                    // console.log("401 에러 발생: 토큰 만료 또는 유효하지 않음. 강제 로그아웃 처리.");
                     handleLogout();
                 } else {
                     setError(err.response?.data?.message || err.message);
@@ -115,7 +115,7 @@ function DashboardPage() {
             // ⭐ 검색 요청 시 현재 사용될 socketId를 전역 상태에 저장 ⭐
             // 이 시점에서는 socketId가 유효하게 설정되어 있습니다.
             setRequestingSocketId(socketId);
-            console.log(`Dashboard: Setting requestingSocketId to ${socketId} for query "${query}"`);
+            // console.log(`Dashboard: Setting requestingSocketId to ${socketId} for query "${query}"`);
 
             await axiosInstance.post(
                 '/api/search',
@@ -129,12 +129,12 @@ function DashboardPage() {
                     },
                 }
             );
-            console.log(`HTTP search request sent for "${query}". Redirecting to /stock-result...`);
+            // console.log(`HTTP search request sent for "${query}". Redirecting to /stock-result...`);
 
             router.push(`/stock-result?query=${encodeURIComponent(query)}&socketId=${encodeURIComponent(socketId)}`);
 
         } catch (err) {
-            console.error('Error sending search request from Dashboard:', err);
+            // console.error('Error sending search request from Dashboard:', err);
             if (axios.isAxiosError(err)) {
                 if (err.response?.status === 401) {
                     setError('세션이 만료되었습니다. 다시 로그인해주세요.');
@@ -234,7 +234,7 @@ function DashboardPage() {
                                 height={112}
                                 style={{ objectFit: 'cover' }}
                                 onError={(e) => {
-                                    console.error("Error loading profile image:", e);
+                                    // console.error("Error loading profile image:", e);
                                     e.currentTarget.src = '/default-profile.png';
                                 }}
                             />

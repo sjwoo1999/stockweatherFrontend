@@ -65,11 +65,11 @@ function StockResultPage() {
     // 기존에 `requestingSocketId`가 `null`이 되는 문제는 `dashboard.tsx`의 클린업에서 `clearProcessingResult`를 제거함으로써 해결되었습니다.
     // 따라서, 이 `setRequestingSocketId` 호출은 페이지가 새로 로드되었을 때의 안정성을 높입니다.
     setRequestingSocketId(socketIdFromUrl);
-    console.log(`StockResultPage: Setting requestingSocketId to ${socketIdFromUrl} from URL.`);
+    // console.log(`StockResultPage: Setting requestingSocketId to ${socketIdFromUrl} from URL.`);
 
     // 컴포넌트 언마운트 시 전역 상태 초기화
     return () => {
-      console.log('StockResultPage unmounted, clearing global state and requestingSocketId.');
+      // console.log('StockResultPage unmounted, clearing global state and requestingSocketId.');
       clearProcessingResult(); // analysisStatus, processingResult, requestingSocketId 모두 초기화
     };
   }, [router, queryFromUrl, socketIdFromUrl, clearProcessingResult, setRequestingSocketId]);
@@ -88,19 +88,19 @@ function StockResultPage() {
     }
 
     if (processingResult && processingResult.query === queryFromUrl && processingResult.socketId === socketIdFromUrl) {
-      console.log('StockResultPage: processingComplete received for current query.', processingResult);
+      // console.log('StockResultPage: processingComplete received for current query.', processingResult);
       setDisplayResult(processingResult);
       setLoading(false);
       setError(processingResult.error || null);
       setNewsCount(processingResult.newsCount || null);
     } else if (analysisStatus && analysisStatus.query === queryFromUrl && analysisStatus.socketId === socketIdFromUrl) {
-      console.log('StockResultPage: analysisProgress received for current query.', analysisStatus);
+      // console.log('StockResultPage: analysisProgress received for current query.', analysisStatus);
       setLoading(true);
       setError(null);
     } else {
       // 이미 `displayResult`나 `analysisStatus`가 설정되었다면 추가 로딩 상태는 필요 없음
       if (!displayResult && !analysisStatus) {
-         console.log('StockResultPage: Waiting for initial socket message for current query.');
+         // console.log('StockResultPage: Waiting for initial socket message for current query.');
          setLoading(true);
          setError(null);
       }

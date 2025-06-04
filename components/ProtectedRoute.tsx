@@ -21,14 +21,14 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     }
 
     const token = localStorage.getItem('jwtToken');
-    console.log('ProtectedRoute: Checking for token. Current token:', token ? '존재함' : '없음', 'on path:', router.pathname);
+    // console.log('ProtectedRoute: Checking for token. Current token:', token ? '존재함' : '없음', 'on path:', router.pathname);
 
     // ⭐ PUBLIC_PATHS를 사용합니다. ⭐
     const isProtectedPath = !PUBLIC_PATHS.includes(router.pathname);
 
     if (isProtectedPath) {
       if (!token) {
-        console.log('ProtectedRoute: 토큰 없음. 보호된 경로 접근 시도. 로그인 페이지로 리다이렉트:', router.pathname);
+        // console.log('ProtectedRoute: 토큰 없음. 보호된 경로 접근 시도. 로그인 페이지로 리다이렉트:', router.pathname);
         router.replace('/login');
         setLoading(true);
       } else {
@@ -36,7 +36,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       }
     } else {
       if (token && (router.pathname === '/login' || router.pathname === '/login-success')) {
-        console.log('ProtectedRoute: 공개 경로이나 토큰 존재. 대시보드로 리다이렉트:', router.pathname);
+        // console.log('ProtectedRoute: 공개 경로이나 토큰 존재. 대시보드로 리다이렉트:', router.pathname);
         router.replace('/dashboard');
         setLoading(true);
       } else {
