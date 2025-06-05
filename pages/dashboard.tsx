@@ -11,7 +11,7 @@ import {
   SuggestedStock,
   User,
   AnalysisProgressData,
-  StockWeatherResponseDto
+  StockWeatherResponseDto // 수정된 StockWeatherResponseDto 사용
 } from '../types/stock';
 import { useSocket } from '../contexts/SocketContext';
 import { searchStock, fetchStockSuggestions } from '../services/stockService';
@@ -111,6 +111,13 @@ function DashboardPage() {
   const navigateToStockResult = useCallback((processingResult: StockWeatherResponseDto) => {
     sessionStorage.setItem('latestProcessingResult', JSON.stringify(processingResult));
   
+    // 오류 응답인 경우 stock-result 페이지로 이동하지 않음
+    if (processingResult.error) {
+      // 오류 메시지를 alert 등으로 사용자에게 표시
+      alert(`분석 중 오류 발생: ${processingResult.error}`);
+      return;
+    }
+
     const url = {
       pathname: '/stock-result',
       query: {
@@ -122,30 +129,35 @@ function DashboardPage() {
     router.push(url);
   }, [router]);
 
-  const stopAnalysisProcess = useCallback((query: string, corpCode: string, hasError: boolean = false, processingResultData?: StockWeatherResponseDto) => {
+  // stopAnalysisProcess 함수는 이제 항상 StockWeatherResponseDto를 받도록 변경
+  const stopAnalysisProcess = useCallback((processingResultData: StockWeatherResponseDto) => {
     const elapsedTime = Date.now() - (analysisStartTime.current || 0);
     const remainingTime = MIN_LOADING_DURATION - elapsedTime;
 
-    const navigateOrDisplayError = () => {
+    const navigateOrDisplay = () => {
       setIsAnalysisLoading(false);
       setAnalysisMessage('분석 준비 중...'); // 메시지 초기화
       analysisStartTime.current = null;
       currentAnalysisSocketId.current = null;
       setRequestingSocketId(null);
 
-      if (!hasError && processingResultData) {
-        navigateToStockResult(processingResultData);
+      // StockWeatherResponseDto에 error 속성이 있으면 오류 처리, 없으면 결과 페이지로 이동
+      if (processingResultData.error) {
+        // 이미 navigateToStockResult에서 alert를 처리하므로 여기서는 추가 alert 생략
+        // 혹은 여기서 특정 에러 UI를 표시할 수 있습니다.
+        setError(processingResultData.error); // 에러 상태 업데이트
       } else {
-        alert(`분석 중 오류 발생: ${analysisMessage}`);
+        navigateToStockResult(processingResultData);
       }
     };
 
     if (remainingTime > 0) {
-      setTimeout(navigateOrDisplayError, remainingTime);
+      setTimeout(navigateOrDisplay, remainingTime);
     } else {
-      navigateOrDisplayError();
+      navigateOrDisplay();
     }
-  }, [analysisMessage, navigateToStockResult, setRequestingSocketId]);
+  }, [navigateToStockResult, setRequestingSocketId]);
+
 
   const startAnalysisProcess = useCallback(async (query: string, corpCode: string) => {
     if (!socketConnected || !socket || !socketId) {
@@ -155,7 +167,7 @@ function DashboardPage() {
 
     if (isAnalysisLoading) return; // 이미 분석 중이면 중복 실행 방지
 
-    setError(null);
+    setError(null); // 새로운 분석 시작 시 기존 에러 초기화
     setIsAnalysisLoading(true);
     setAnalysisMessage(`'${query}' 분석을 시작합니다...`);
     analysisStartTime.current = Date.now();
@@ -166,23 +178,32 @@ function DashboardPage() {
       await searchStock(query, socketId, corpCode);
       setAnalysisMessage(`'${query}' 공시 데이터를 분석 중...`);
     } catch (err) {
-      setError('분석 요청에 실패했습니다. 다시 시도해주세요.');
-      stopAnalysisProcess(query, corpCode, true, { error: '분석 요청 실패', query: query, socketId: socketId });
+      // Axios 에러 발생 시 처리
+      const errorMessage = axios.isAxiosError(err) ? err.response?.data?.message || '분석 요청에 실패했습니다.' : '알 수 없는 오류가 발생했습니다.';
+      // stopAnalysisProcess에 StockWeatherResponseDto 타입의 에러 객체를 넘깁니다.
+      stopAnalysisProcess({
+        query: query,
+        socketId: socketId,
+        error: errorMessage,
+        // StockWeatherResponseDto에 필수는 아니지만, 오류 객체에 포함될 수 있는 다른 속성들은 생략
+      });
+      setError(errorMessage); // 상태 에러 메시지 설정
     }
   }, [socket, socketId, socketConnected, isAnalysisLoading, setRequestingSocketId, stopAnalysisProcess]);
 
-  const handleProcessingComplete = (data: StockWeatherResponseDto | { error: string; query?: string; socketId?: string }) => {
+  // handleProcessingComplete도 StockWeatherResponseDto를 받도록 수정
+  const handleProcessingComplete = useCallback((data: StockWeatherResponseDto) => {
     if (currentAnalysisSocketId.current === data.socketId) {
-      const query = data.query || searchTerm;
-      const corpCode = (data as StockWeatherResponseDto).stock?.code || selectedCorpCode || '';
-      const hasError = !!data.error;
+      // stopAnalysisProcess 함수는 이제 항상 StockWeatherResponseDto를 인자로 받으므로
+      // 그대로 data를 넘겨주면 됩니다.
+      stopAnalysisProcess(data);
 
-      if (!hasError && corpCode && data.socketId === currentAnalysisSocketId.current) {
-        // 최근 검색어 업데이트 로직
+      // 에러가 없고, corpCode가 유효한 경우에만 최근 검색어 업데이트 로직 수행
+      if (!data.error && data.stock?.code) {
         const currentSelectedStock: SuggestedStock = {
-          name: query,
-          code: corpCode,
-          stock_code: (data as StockWeatherResponseDto).stock?.stockCode,
+          name: data.query, // data.query 사용
+          code: data.stock.code,
+          stock_code: data.stock.stockCode,
         };
         // 이미 있는 항목은 맨 앞으로 이동, 없으면 추가
         const updatedRecentSearches = [
@@ -192,10 +213,8 @@ function DashboardPage() {
         setRecentSearches(updatedRecentSearches);
         localStorage.setItem('recentSearches', JSON.stringify(updatedRecentSearches));
       }
-
-      stopAnalysisProcess(query, corpCode, hasError, hasError ? undefined : (data as StockWeatherResponseDto));
     }
-  };
+  }, [stopAnalysisProcess, recentSearches]); // 의존성 추가: recentSearches
 
   useEffect(() => {
     if (!socket) return;
@@ -236,7 +255,7 @@ function DashboardPage() {
     handleStockSelectionAndAnalysis(stock);
   };
 
-  // 최근 검색 종목 클릭 핸들러 (새로 추가)
+  // 최근 검색 종목 클릭 핸들러
   const handleRecentSearchClick = (item: SuggestedStock) => {
     handleStockSelectionAndAnalysis(item);
   };
@@ -394,7 +413,7 @@ function DashboardPage() {
                 <li
                   key={item.code}
                   className="py-3 px-4 bg-surface-base rounded-md shadow-sm border border-surface-subtle hover:bg-brand-light cursor-pointer transition-colors duration-200 flex justify-between items-center font-body text-text-default"
-                  onClick={() => handleRecentSearchClick(item)} // <--- 이 부분 수정
+                  onClick={() => handleRecentSearchClick(item)}
                 >
                   <span>{item.name}</span>
                   <FaArrowRight className="text-brand-primary text-sm" />

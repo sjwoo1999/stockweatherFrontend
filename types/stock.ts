@@ -56,14 +56,14 @@ export interface DisclosureItem {
   
   // 최종적으로 클라이언트에 전송될 DTO (WebSocket 응답 형식)
   export interface StockWeatherResponseDto {
-    stock: StockData; // StockData 인터페이스 사용
-    weatherIcon: 'sunny' | 'partly-cloudy' | 'cloudy' | 'rainy' | 'stormy' | 'unknown';
-    timestamp: string;
-    disclaimer: string;
-    error?: string; // 에러 메시지
+    stock?: StockData; // stock 속성은 오류 시 없을 수 있으므로 옵셔널로 변경
+    weatherIcon?: 'sunny' | 'partly-cloudy' | 'cloudy' | 'rainy' | 'stormy' | 'unknown'; // 옵셔널
+    timestamp?: string; // 옵셔널
+    disclaimer?: string; // 옵셔널
+    error?: string; // <-- 이 부분이 핵심 추가: 에러 메시지를 받을 수 있도록 함
     query: string; // 검색 쿼리 (클라이언트 요청 쿼리)
     newsCount?: number | null; // DART 공시 개수
-    socketId: string; // 백엔드에서 해당 분석에 대한 소켓 ID (필수)
+    socketId?: string; // 백엔드에서 해당 분석에 대한 소켓 ID (옵셔널로 변경: 오류 시 없을 수 있음)
   }
   
   // Socket.IO 이벤트에서 사용되는 DTO와 인터페이스를 여기에 정의합니다.
@@ -77,9 +77,11 @@ export interface DisclosureItem {
   }
   
   // 서버 -> 클라이언트 이벤트 정의 (필요한 이벤트만 유지)
+  // processingComplete 이벤트의 data 타입을 StockWeatherResponseDto로 단일화하고,
+  // StockWeatherResponseDto 안에 error 속성을 추가하여 처리
   export interface ServerToClientEvents {
     analysisProgress: (data: AnalysisProgressData) => void;
-    processingComplete: (data: StockWeatherResponseDto | { error: string; query?: string; socketId?: string }) => void;
+    processingComplete: (data: StockWeatherResponseDto) => void; // 이제 error 속성이 StockWeatherResponseDto 안에 포함됨
     'error': (error: Error) => void; // 일반적인 소켓 에러
   }
   
