@@ -1,24 +1,49 @@
 // stockweather-frontend/src/services/stockService.ts
-import { StockSearchResult, StockSummary, StockDetail } from '@/types/stock';
-import axiosInstance from '@/api/axiosInstance'; // axiosInstance 임포트
+
+import { StockSearchResult, StockSummary, StockDetail, SuggestedStock } from '../types/stock'; // SuggestedStock 타입 추가 임포트
+import axiosInstance from '../api/axiosInstance'; // axiosInstance 임포트
 
 /**
- * 특정 종목을 검색하는 API 호출 함수
+ * 특정 종목 분석을 요청하는 API 호출 함수 (Socket.IO 결과 수신)
  * @param query 검색할 종목명
- * @returns StockSearchResult 타입의 검색 결과
+ * @param socketId 클라이언트 소켓 ID
+ * @param selectedCorpCode (선택 사항) 사용자가 직접 선택한 corpCode
+ * @returns 요청 접수 성공 메시지 (실제 분석 결과는 소켓을 통해 수신)
  */
-export async function searchStock(query: string): Promise<StockSearchResult> {
+export async function searchStock(query: string, socketId: string, selectedCorpCode?: string): Promise<{ message: string; query: string; socketId: string }> {
   try {
-    // ⭐️⭐️⭐️ 이 부분이 백엔드 컨트롤러 (@Controller('stock') 및 @Get('search'))에 정의된 경로와 일치합니다! ⭐️⭐️⭐️
-    const response = await axiosInstance.get<StockSearchResult>(`/stock/search`, {
-      params: { query }, // 쿼리 파라미터로 전달
+    const response = await axiosInstance.post<{ message: string; query: string; socketId: string }>(`/api/search`, {
+      query,
+      socketId,
+      selectedCorpCode,
     });
     return response.data;
   } catch (error) {
     console.error('searchStock API 호출 실패:', error);
+    if (axiosInstance.isAxiosError(error) && error.response) {
+      throw new Error(error.response.data.message || '알 수 없는 검색 요청 오류');
+    }
     throw error;
   }
 }
+
+/**
+ * 종목 검색 제안을 불러오는 API 호출 함수
+ * @param query 사용자가 입력한 검색어
+ * @returns SuggestedStock[] 배열
+ */
+export const fetchStockSuggestions = async (query: string): Promise<SuggestedStock[]> => { // <--- 이 함수를 추가해야 합니다!
+  try {
+    // ⭐️⭐️⭐️ 백엔드의 @Controller('api') 및 @Get('suggest-stocks')에 정의된 경로와 일치합니다! ⭐️⭐️⭐️
+    const response = await axiosInstance.get<SuggestedStock[]>(`/api/suggest-stocks?query=${encodeURIComponent(query)}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch stock suggestions:", error);
+    // 에러 발생 시 빈 배열 반환 또는 에러 throw 선택
+    return [];
+    // throw error; // 에러를 상위 컴포넌트로 전달하려면 이 줄을 사용
+  }
+};
 
 /**
  * 사용자 관심 종목 요약 정보를 가져오는 API 호출 함수
@@ -26,7 +51,6 @@ export async function searchStock(query: string): Promise<StockSearchResult> {
  */
 export async function fetchUserSummary(): Promise<StockSummary[]> {
   try {
-    // 백엔드 API 경로가 /users/summary로 변경되었으므로 수정
     const response = await axiosInstance.get<StockSummary[]>(`/users/summary`);
     return response.data;
   } catch (error) {
@@ -41,7 +65,6 @@ export async function fetchUserSummary(): Promise<StockSummary[]> {
  */
 export async function fetchUserDetail(): Promise<StockDetail[]> {
   try {
-    // 백엔드 API 경로가 /users/detail로 변경되었으므로 수정
     const response = await axiosInstance.get<StockDetail[]>(`/users/detail`);
     return response.data;
   } catch (error) {

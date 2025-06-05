@@ -1,4 +1,3 @@
-// tailwind.config.js
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ['./pages/**/*.{ts,tsx}', './components/**/*.{ts,tsx}'],
@@ -18,6 +17,11 @@ module.exports = {
         text: {
           default: '#111',
           muted: '#666',
+        },
+        sentiment: {
+          positive: '#1D976C',
+          negative: '#D7263D',
+          neutral: '#FFA500',
         },
       },
       fontFamily: {

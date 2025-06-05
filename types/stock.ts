@@ -1,12 +1,25 @@
 // stockweather-frontend/src/types/stock.ts
 
-export interface KeywordSentiment {
+// DART 공시 정보 아이템 (프론트엔드에서도 사용)
+export interface DisclosureItem {
+    rcept_no: string; // 접수 번호 (DART 고유 식별자)
+    corp_name: string; // 회사명
+    report_nm: string; // 보고서명
+    flr_nm: string; // 제출인 (보고서 제출 회사 이름)
+    rcept_dt: string; // 접수 일자 (YYYYMMDD)
+    rmk?: string; // 비고 (옵션)
+    summary?: string; // AI가 요약한 공시 내용 (옵션)
+    url?: string; // 공시 원본 URL (백엔드에서 제공할 경우를 대비)
+    reprt_code?: string;
+    bsns_year?: string;
+  }
+  
+  export interface KeywordSentiment {
     text: string;
     sentiment: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL';
   }
   
   export interface InvestmentOpinion {
-    // 백엔드의 InvestmentOpinion과 일치
     opinion: '매수' | '적정 매수' | '관망' | '적정 매도' | '매도';
     confidence: number; // 0.0 ~ 1.0
     reason?: string; // 백엔드에서 추가된 reason 필드 반영
@@ -14,31 +27,22 @@ export interface KeywordSentiment {
   
   export interface RelatedStock {
     name: string;
-    // 백엔드의 RelatedStock과 일치
     opinion: '매수' | '매도' | '유지' | '관망' | '추가 매수' | '적정 매수';
     confidence: number; // 0.0 ~ 1.0
     relationship?: string; // 백엔드의 relatedStocks에 있는 relationship 필드 반영
   }
   
-  export interface NewsArticleSummary {
-    title: string;
-    summary: string;
-    url: string;
-    thumbnailUrl?: string;
-    // 백엔드의 NewsArticleSummary의 sentiment와 일치
-    sentiment?: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL' | 'UNKNOWN';
-  }
-  
   // 백엔드의 StockData 인터페이스에 해당하는 프론트엔드용 인터페이스
   export interface StockData {
     name: string;
+    code: string; // DART corp_code (필수)
+    stockCode?: string; // 주식 시장 종목 코드 (선택적)
     weatherSummary: string;
     overallSentiment: 'VERY_POSITIVE' | 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE' | 'VERY_NEGATIVE' | 'UNKNOWN';
     sentimentScore: number;
     keywords: KeywordSentiment[];
-    reportSummary: string;
-    articles: NewsArticleSummary[]; // 요약된 기사 목록 (5개)
-    // detailedAnalysis 필드를 객체 타입으로 변경
+    reportSummary: string; // 전체 공시 요약
+    articles: DisclosureItem[]; // DART 공시 정보 목록
     detailedAnalysis: {
       positiveFactors: string;
       negativeFactors: string;
@@ -47,7 +51,7 @@ export interface KeywordSentiment {
     };
     investmentOpinion: InvestmentOpinion;
     relatedStocks: RelatedStock[];
-    overallNewsSummary?: string; // 전체 뉴스 요약
+    overallNewsSummary?: string; // 백엔드 DTO에 맞게 옵션으로 유지
   }
   
   // 최종적으로 클라이언트에 전송될 DTO (WebSocket 응답 형식)
@@ -57,65 +61,57 @@ export interface KeywordSentiment {
     timestamp: string;
     disclaimer: string;
     error?: string; // 에러 메시지
-    query?: string; // 검색 쿼리
-    newsCount?: number; // 백엔드에서 추가된 필드 반영
-    socketId?: string; // 백엔드에서 추가된 필드 반영
+    query: string; // 검색 쿼리 (클라이언트 요청 쿼리)
+    newsCount?: number | null; // DART 공시 개수
+    socketId: string; // 백엔드에서 해당 분석에 대한 소켓 ID (필수)
   }
   
   // Socket.IO 이벤트에서 사용되는 DTO와 인터페이스를 여기에 정의합니다.
   export interface AnalysisProgressData {
-    status: string;
+    status?: string; // 백엔드에서 status 필드를 보내지 않는다면 제거해도 무방
     message: string;
     query: string;
     socketId: string;
+    corpCode: string;
+    progress?: number; // 진행률 (0-100)
   }
   
-  // 서버 -> 클라이언트 이벤트 정의
+  // 서버 -> 클라이언트 이벤트 정의 (필요한 이벤트만 유지)
   export interface ServerToClientEvents {
-    noArg: () => void;
-    basicEmit: (a: number, b: string) => void;
-    withAck: (d: string, callback: (e: number) => void) => void;
-  
-    // 서버 -> 클라이언트 진행 상황 업데이트
     analysisProgress: (data: AnalysisProgressData) => void;
-    // 서버 -> 클라이언트 최종 결과
-    processingComplete: (data: StockWeatherResponseDto) => void;
-  
-    // 'error' 이벤트를 명시적으로 추가
-    'error': (error: Error) => void;
+    processingComplete: (data: StockWeatherResponseDto | { error: string; query?: string; socketId?: string }) => void;
+    'error': (error: Error) => void; // 일반적인 소켓 에러
   }
   
-  // 클라이언트 -> 서버 이벤트 정의
+  // 클라이언트 -> 서버 이벤트 정의 (현재 필요 없는 이벤트 제거)
   export interface ClientToServerEvents {
-    // noop: () => void; // 예시: 클라이언트에서 백엔드로 보내는 이벤트가 있다면 여기에 정의
+    // 클라이언트에서 서버로 보내는 이벤트가 있다면 여기에 정의
+    // 예: 'requestAnalysis': (query: string, corpCode: string, socketId: string) => void;
+    // 현재는 HTTP 요청으로 분석 시작하므로 여기에는 필요 없음
   }
   
-  // my-detail.tsx에서 사용될 StockDetail 인터페이스
-  export interface StockDetail {
-    name: string;
-    emoji: string;
-    color: string; // Tailwind CSS class name (e.g., 'text-red-500')
-    signal: string; // (e.g., '매수', '매도', '유지')
-    percent: string; // (e.g., '+5.2%', '-1.3%')
+  // 백엔드에서 공시 정보 검색 제안 응답
+  export interface SuggestedStock {
+    name: string; // 종목명 (예: "삼성전자")
+    code: string; // DART corp_code (고유 식별자, 공시 조회용)
+    stock_code?: string; // 주식 시장 종목 코드 (선택 사항, 표시용)
   }
   
-  // my-summary.tsx에서 사용될 StockSummary 인터페이스
-  export interface StockSummary {
-    date: string; // 예: "2023-10-27"
-    overallSentiment: string; // 예: "전반적으로 긍정적입니다."
-    stocks: { // 각 종목의 요약을 담는 배열
-      name: string;
-      summary: string; // 종목별 요약 텍스트
-    }[];
+  // 백엔드 searchStock API 응답 (HTTP POST)
+  export interface SearchResponse {
+    message: string;
+    query: string;
+    socketId: string; // 이 socketId를 통해 소켓 이벤트가 전송됨
+    corpCode: string; // 분석 요청된 종목의 DART corp_code
   }
   
-  // ⭐ 새로 추가될 StockSearchResult 인터페이스 ⭐
-  // searchStock 함수가 단일 객체를 반환하므로, 해당 객체의 구조를 가정합니다.
-  // 이는 검색 성공 시 반환될 수 있는 단일 종목의 기본 정보일 가능성이 높습니다.
-  // 만약 검색 API가 여러 결과를 배열로 반환한다면, Promise<StockSearchResult[]>로 수정해야 합니다.
-  export interface StockSearchResult {
-    name: string; // 검색된 종목의 이름
-    symbol?: string; // 종목 코드/심볼 (예: "005930", "AAPL")
-    // 여기에 백엔드 검색 API의 응답에 따라 필요한 다른 필드를 추가할 수 있습니다.
-    // 예를 들어, isFound: boolean; message?: string; 등.
+  // 사용자 프로필 정보 인터페이스 (Dashboard에서 사용)
+  export interface User {
+    id: number;
+    kakaoId: string;
+    email?: string;
+    nickname: string;
+    profileImage?: string;
+    createdAt: string;
+    updatedAt: string;
   }
