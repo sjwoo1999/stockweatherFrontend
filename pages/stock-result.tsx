@@ -8,8 +8,9 @@ import {
   KeywordSentiment,
   RelatedStock,
   DisclosureItem,
-} from '../types/stock';
-import { useSocket } from '../contexts/SocketContext';
+  // StockData // StockData는 StockWeatherResponseDto 내부에 포함되므로 직접 임포트할 필요 없음
+} from '../types/stock'; // <-- 상대 경로에서 @/types/stock으로 변경
+import { useSocket } from '../contexts/SocketContext'; // <-- 상대 경로에서 @/contexts/SocketContext로 변경
 import {
   FiSun,
   FiCloud,
@@ -17,7 +18,7 @@ import {
   FiCloudLightning,
   FiCloudOff,
 } from 'react-icons/fi';
-import LoadingSpinner from 'components/LoadingSpinner';
+import LoadingSpinner from '../components/LoadingSpinner'; // <-- 경로 변경 (components/LoadingSpinner -> @/components/LoadingSpinner)
 
 function StockResultPage() {
   const router = useRouter();
@@ -48,7 +49,7 @@ function StockResultPage() {
     }
 
     if (!queryFromUrl || !socketIdFromUrl || !corpCodeFromUrl) {
-      setError('유효하지 않은 접근입니다.');
+      setError('유효하지 않은 접근입니다. 필요한 정보가 누락되었습니다.');
       setLoading(false);
       return;
     }
@@ -60,9 +61,16 @@ function StockResultPage() {
     const stored = sessionStorage.getItem('latestProcessingResult');
     if (stored) {
       const parsed = JSON.parse(stored);
-      setDisplayResult(parsed);
+      // 저장된 결과가 유효한지 추가적으로 검사
+      if (parsed.stock && parsed.query === queryFromUrl && parsed.stock.code === corpCodeFromUrl) {
+        setDisplayResult(parsed);
+        setError(parsed.error || null);
+      } else {
+        // 저장된 결과가 현재 요청과 일치하지 않으면 무시
+        setDisplayResult(null);
+        setError(null);
+      }
       setLoading(false);
-      setError(parsed.error || null);
     }
 
     return () => {
@@ -83,7 +91,10 @@ function StockResultPage() {
     if (!socket) return;
 
     const handleAnalysisProgress = (data: AnalysisProgressData) => {
-      setAnalysisStatus(data);
+      // 현재 요청 중인 소켓 ID와 일치하는 경우에만 상태 업데이트
+      if (data.socketId === requestingSocketId) {
+        setAnalysisStatus(data);
+      }
     };
 
     socket.on('analysisProgress', handleAnalysisProgress);
@@ -91,7 +102,7 @@ function StockResultPage() {
     return () => {
       socket.off('analysisProgress', handleAnalysisProgress);
     };
-  }, [socket]);
+  }, [socket, requestingSocketId]); // requestingSocketId를 의존성 배열에 추가
 
   useEffect(() => {
     const isCurrentRequestProcessingResult =
@@ -104,11 +115,14 @@ function StockResultPage() {
       setDisplayResult(processingResult);
       setLoading(false);
       setError(processingResult.error || null);
-      sessionStorage.setItem('latestProcessingResult', JSON.stringify(processingResult));
+      // 정상적으로 데이터를 받았을 때만 sessionStorage에 저장
+      if (!processingResult.error) {
+        sessionStorage.setItem('latestProcessingResult', JSON.stringify(processingResult));
+      }
     }
   }, [processingResult, queryFromUrl, corpCodeFromUrl, requestingSocketId]);
 
-  const getWeatherIconComponent = useCallback((iconName: string) => {
+  const getWeatherIconComponent = useCallback((iconName: string | undefined) => { // iconName 타입 수정
     const iconSize = 64;
     switch (iconName) {
       case 'sunny':
@@ -129,20 +143,26 @@ function StockResultPage() {
 
   // --- UI 렌더링 ---
 
+  // 로딩 상태: queryFromUrl, corpCodeFromUrl가 있고 displayResult가 없거나,
+  // analysisStatus가 현재 요청과 일치하지 않을 때
   if (loading || (stockName && corpCode && !displayResult && (!analysisStatus || analysisStatus.query !== queryFromUrl || analysisStatus.corpCode !== corpCodeFromUrl))) {
     const currentMessage = analysisStatus?.message || `AI가 '${stockName || '종목'}'의 주식 전망을 분석하고 있어요.`;
     return (
-      // 기존의 div 요소를 제거하고 LoadingSpinner 컴포넌트로 대체
       <LoadingSpinner message={currentMessage} currentStep={analysisStatus?.message} />
     );
   }
 
-  if (error || !displayResult || !stockName || !corpCode) {
+  // 오류 또는 필수 데이터 누락 상태:
+  // displayResult가 없거나, stockName/corpCode가 없거나,
+  // 또는 displayResult.stock 자체가 없을 때 오류 화면을 보여줍니다.
+  if (error || !displayResult || !stockName || !corpCode || !displayResult.stock) { // <-- 이 부분에 !displayResult.stock 추가
     return (
       <div className="min-h-screen bg-brand-light flex justify-center items-center font-body text-text-default">
         <div className="w-[393px] flex flex-col items-center justify-center text-center p-6">
           <p className="mb-4 text-sm text-red-500 font-body">
             오류: {error || '분석 결과를 불러오는 데 실패했습니다.'}
+            {/* displayResult.stock이 없을 때의 추가 메시지 */}
+            {!displayResult?.stock && displayResult && !error && ' (종목 데이터가 불완전합니다.)'}
           </p>
           <button
             onClick={() => router.push('/dashboard')}
@@ -155,9 +175,10 @@ function StockResultPage() {
     );
   }
 
-  // --- displayResult 해체 ---
+  // --- displayResult 및 stock 데이터 해체 ---
+  // 이 시점에서는 displayResult와 displayResult.stock이 null/undefined가 아님이 TypeScript에 의해 보장됩니다.
   const { stock, weatherIcon, timestamp, disclaimer, newsCount } = displayResult;
-  const { name, weatherSummary, keywords, investmentOpinion, detailedAnalysis, relatedStocks, articles: disclosures, overallNewsSummary } = stock;
+  const { name, weatherSummary, keywords, investmentOpinion, detailedAnalysis, relatedStocks, articles: disclosures, overallNewsSummary } = stock; // <-- 안전하게 비구조화
 
   return (
     <div className="min-h-screen bg-brand-light flex flex-col items-center py-12 px-4 font-body text-text-default">

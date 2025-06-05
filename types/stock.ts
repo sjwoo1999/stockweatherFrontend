@@ -117,3 +117,25 @@ export interface DisclosureItem {
     createdAt: string;
     updatedAt: string;
   }
+
+  // my-detail.tsx에서 사용되는 종목 세부 정보 인터페이스 추가
+  export interface StockDetail {
+    name: string;
+    emoji: string;
+    signal: string;
+    percent: string; // "10%"와 같은 문자열일 경우
+    color: string; // TailwindCSS 클래스 문자열 (예: "text-red-500", "text-green-500")
+    // 백엔드 응답에 따라 필요한 다른 속성 추가
+  }
+
+  // my-summary.tsx에서 사용되는 종목 요약 정보 인터페이스 추가 <-- 이 부분 추가
+  export interface StockSummary {
+    date: string; // 예: "2023년 10월 26일"
+    overallSentiment: string; // 예: "매우 긍정적" 또는 StockData의 overallSentiment와 유사한 타입
+    stocks: {
+      name: string;
+      summary: string; // 종목별 요약 내용
+      // 필요한 경우 다른 속성 추가 (예: emoji, signal 등)
+    }[];
+    // 백엔드 응답에 따라 필요한 다른 속성 추가
+  }

@@ -1,9 +1,10 @@
 // stockweather-frontend/src/pages/my-summary.tsx
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { fetchUserSummary } from '@/services/stockService';
-import { StockSummary } from '@/types/stock';
+import { fetchUserSummary } from '../services/stockService'; // <-- 경로 수정
+import { StockSummary } from '../types/stock'; // <-- 경로 수정
 import axios from 'axios';
+import LoadingSpinner from '../components/LoadingSpinner'; // <-- LoadingSpinner 임포트
 
 export default function MySummary() {
   const router = useRouter();
@@ -16,20 +17,24 @@ export default function MySummary() {
       try {
         setLoading(true);
         const result = await fetchUserSummary();
+        // fetchUserSummary가 StockSummary[]를 반환한다고 가정
         if (result && result.length > 0) {
           setSummaryData(result[0]);
         } else {
+          // 백엔드에서 빈 배열을 반환하거나, 데이터가 없을 때의 처리
           setError('요약 정보를 찾을 수 없습니다.');
+          setSummaryData(null); // 데이터가 없을 때 summaryData를 null로 설정
         }
       } catch (err) {
         console.error('Failed to fetch user summary:', err);
-        // AxiosError의 경우 더 자세한 에러 정보 추출
         if (axios.isAxiosError(err) && err.response) {
-            setError(`요약 정보를 가져오는 데 실패했습니다: ${err.response.status} ${err.response.statusText}`);
+            // 사용자에게 더 친화적인 메시지 제공
             if (err.response.status === 401) {
-                // 토큰 만료 등 401 에러 시 로그인 페이지로 리다이렉트
+                setError('세션이 만료되었거나 로그인이 필요합니다.');
                 alert('로그인이 필요합니다.');
                 router.replace('/login');
+            } else {
+                setError(`요약 정보를 가져오는 데 실패했습니다: ${err.response.status} ${err.response.statusText || err.message}`);
             }
         } else {
             setError('요약 정보를 가져오는 중 알 수 없는 오류가 발생했습니다.');
@@ -39,9 +44,8 @@ export default function MySummary() {
       }
     };
 
-    // 컴포넌트가 마운트될 때만 데이터를 가져오도록
     getSummary();
-  }, [router]); // router 객체가 필요하므로 의존성 배열에 추가
+  }, [router]);
 
   const handleDetail = () => {
     router.push('/my-detail');
@@ -51,10 +55,8 @@ export default function MySummary() {
     return (
       <div className="min-h-screen bg-[#FFF5F5] flex justify-center items-center">
         <div className="w-[393px] flex flex-col items-center justify-center text-center">
-          <p className="mb-4 text-sm text-gray-600 font-medium">
-            관심 종목 요약 정보를 불러오는 중...
-          </p>
-          <div className="spinner">{/* 스피너 CSS는 search-loading.tsx 참고 */}</div>
+          {/* LoadingSpinner 컴포넌트 사용 */}
+          <LoadingSpinner message="관심 종목 요약 정보를 불러오는 중..." /> {/* <-- 변경된 부분 */}
         </div>
       </div>
     );
@@ -71,7 +73,7 @@ export default function MySummary() {
             onClick={() => router.push('/dashboard')}
             className="mt-4 bg-gray-200 text-gray-800 px-6 py-2 rounded-full text-sm font-semibold shadow-sm"
           >
-            다시 시도하기
+            홈으로 돌아가기
           </button>
         </div>
       </div>
@@ -110,7 +112,8 @@ export default function MySummary() {
         </p>
         <ul className="text-sm space-y-2 mb-6 text-black">
           {summaryData.stocks.map((stock, idx) => (
-            <li key={idx}>
+            // `stock.name`이 고유하다고 가정하고 key로 사용, 또는 고유 ID 사용
+            <li key={stock.name || idx}> {/* <-- key prop 개선 */}
               {/* 이모지는 백엔드에서 함께 제공되거나 프론트엔드에서 매핑 로직 필요 */}
               {stock.name}: {stock.summary}
             </li>

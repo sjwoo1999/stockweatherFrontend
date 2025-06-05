@@ -1,7 +1,8 @@
 // stockweather-frontend/src/services/stockService.ts
 
-import { StockSearchResult, StockSummary, StockDetail, SuggestedStock } from '../types/stock'; // SuggestedStock 타입 추가 임포트
+import { StockSummary, StockDetail, SuggestedStock, SearchResponse } from '../types/stock';
 import axiosInstance from '../api/axiosInstance'; // axiosInstance 임포트
+import axios from 'axios'; // <-- axios 임포트 추가!
 
 /**
  * 특정 종목 분석을 요청하는 API 호출 함수 (Socket.IO 결과 수신)
@@ -10,9 +11,9 @@ import axiosInstance from '../api/axiosInstance'; // axiosInstance 임포트
  * @param selectedCorpCode (선택 사항) 사용자가 직접 선택한 corpCode
  * @returns 요청 접수 성공 메시지 (실제 분석 결과는 소켓을 통해 수신)
  */
-export async function searchStock(query: string, socketId: string, selectedCorpCode?: string): Promise<{ message: string; query: string; socketId: string }> {
+export async function searchStock(query: string, socketId: string, selectedCorpCode?: string): Promise<SearchResponse> {
   try {
-    const response = await axiosInstance.post<{ message: string; query: string; socketId: string }>(`/api/search`, {
+    const response = await axiosInstance.post<SearchResponse>(`/api/search`, {
       query,
       socketId,
       selectedCorpCode,
@@ -20,7 +21,7 @@ export async function searchStock(query: string, socketId: string, selectedCorpC
     return response.data;
   } catch (error) {
     console.error('searchStock API 호출 실패:', error);
-    if (axiosInstance.isAxiosError(error) && error.response) {
+    if (axios.isAxiosError(error) && error.response) { // <-- axios.isAxiosError로 변경
       throw new Error(error.response.data.message || '알 수 없는 검색 요청 오류');
     }
     throw error;
@@ -32,16 +33,18 @@ export async function searchStock(query: string, socketId: string, selectedCorpC
  * @param query 사용자가 입력한 검색어
  * @returns SuggestedStock[] 배열
  */
-export const fetchStockSuggestions = async (query: string): Promise<SuggestedStock[]> => { // <--- 이 함수를 추가해야 합니다!
+export const fetchStockSuggestions = async (query: string): Promise<SuggestedStock[]> => {
   try {
-    // ⭐️⭐️⭐️ 백엔드의 @Controller('api') 및 @Get('suggest-stocks')에 정의된 경로와 일치합니다! ⭐️⭐️⭐️
     const response = await axiosInstance.get<SuggestedStock[]>(`/api/suggest-stocks?query=${encodeURIComponent(query)}`);
     return response.data;
   } catch (error) {
     console.error("Failed to fetch stock suggestions:", error);
-    // 에러 발생 시 빈 배열 반환 또는 에러 throw 선택
+    // 여기서도 axios.isAxiosError를 사용할 수 있습니다. (필요하다면)
+    if (axios.isAxiosError(error)) {
+        // 특정 Axios 에러 처리 (예: 네트워크 오류 등)
+        console.error("Axios error details:", error.message);
+    }
     return [];
-    // throw error; // 에러를 상위 컴포넌트로 전달하려면 이 줄을 사용
   }
 };
 
@@ -55,6 +58,10 @@ export async function fetchUserSummary(): Promise<StockSummary[]> {
     return response.data;
   } catch (error) {
     console.error('fetchUserSummary API 호출 실패:', error);
+    if (axios.isAxiosError(error)) { // <-- axios.isAxiosError로 변경
+        // 에러를 다시 throw하기 전에 추가적인 로깅 또는 처리를 할 수 있습니다.
+        console.error("Axios error details:", error.message);
+    }
     throw error;
   }
 }
@@ -69,6 +76,10 @@ export async function fetchUserDetail(): Promise<StockDetail[]> {
     return response.data;
   } catch (error) {
     console.error('fetchUserDetail API 호출 실패:', error);
+    if (axios.isAxiosError(error)) { // <-- axios.isAxiosError로 변경
+        // 에러를 다시 throw하기 전에 추가적인 로깅 또는 처리를 할 수 있습니다.
+        console.error("Axios error details:", error.message);
+    }
     throw error;
   }
 }
