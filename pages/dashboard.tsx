@@ -160,7 +160,14 @@ function DashboardPage() {
 
 
   const startAnalysisProcess = useCallback(async (query: string, corpCode: string) => {
-    if (!socketConnected || !socket || !socketId) {
+    if (!socketConnected || !socket) {
+      setError('서버와 실시간 연결이 불안정합니다.');
+      return;
+    }
+
+    const socketId = socket.id; // 최신 socket.id 가져오기
+
+    if (!socketId) {
       setError('서버와 실시간 연결이 불안정합니다.');
       return;
     }
