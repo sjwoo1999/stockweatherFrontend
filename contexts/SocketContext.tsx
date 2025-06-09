@@ -61,8 +61,8 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     const newSocket = io(socketUrl, {
       auth: { token: storedToken },
-      transports: ['websocket', 'polling'],
-      forceNew: false,
+      transports: ['websocket'], // ⭐️ polling 제거
+      forceNew: false, // 기존 소켓 재사용
       autoConnect: true,
       reconnection: true,
       reconnectionAttempts: 5,
