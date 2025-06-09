@@ -174,6 +174,8 @@ function DashboardPage() {
     currentAnalysisSocketId.current = socketId;
     setRequestingSocketId(socketId);
 
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     try {
       await searchStock(query, socketId, corpCode);
       setAnalysisMessage(`'${query}' 공시 데이터를 분석 중...`);
