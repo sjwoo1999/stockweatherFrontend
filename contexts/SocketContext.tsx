@@ -115,7 +115,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         currentSocketInstance.off('processingComplete', handleProcessingComplete);
       }
     };
-  }, [socketUrl]);
+  }, []);
 
   // ⭐️ socketId mismatch 방지용 useEffect
   useEffect(() => {
