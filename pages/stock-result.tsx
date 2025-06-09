@@ -25,6 +25,7 @@ function StockResultPage() {
   const router = useRouter();
   const {
     socket,
+    socketConnected,
     requestingSocketId,
     setRequestingSocketId,
     processingResult,
@@ -56,7 +57,12 @@ function StockResultPage() {
       return;
     }
 
-    setRequestingSocketId(socketIdFromUrl);
+    useEffect(() => {
+      if (socket && socketConnected && socketIdFromUrl) {
+        console.log(`[StockResultPage] Setting requestingSocketId=${socketIdFromUrl}`);
+        setRequestingSocketId(socketIdFromUrl);
+      }
+    }, [socket, socketConnected, socketIdFromUrl, setRequestingSocketId]);
     setStockName(queryFromUrl ? decodeURIComponent(queryFromUrl) : null);
     setCorpCode(corpCodeFromUrl ? decodeURIComponent(corpCodeFromUrl) : null);
 

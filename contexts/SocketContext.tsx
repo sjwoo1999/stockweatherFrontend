@@ -119,11 +119,15 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   // ⭐️ socketId mismatch 방지용 useEffect
   useEffect(() => {
-    if (requestingSocketId && socketId && requestingSocketId !== socketId) {
-      console.warn('[SocketContext] Detected socketId mismatch. Resetting requestingSocketId.');
-      setRequestingSocketId(null);
+    if (requestingSocketId && socketId) {
+      const isStaleRequest = !socket?.connected || socket.id !== requestingSocketId;
+  
+      if (isStaleRequest) {
+        console.warn('[SocketContext] Detected stale requestingSocketId. Resetting requestingSocketId.');
+        setRequestingSocketId(null);
+      }
     }
-  }, [socketId, requestingSocketId]);
+  }, [socket, socketId, requestingSocketId]);
 
   return (
     <SocketContext.Provider
