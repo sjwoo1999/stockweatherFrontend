@@ -8,9 +8,8 @@ import {
   KeywordSentiment,
   RelatedStock,
   DisclosureItem,
-  // StockData // StockData는 StockWeatherResponseDto 내부에 포함되므로 직접 임포트할 필요 없음
-} from '../types/stock'; // <-- 상대 경로에서 @/types/stock으로 변경
-import { useSocket } from '../contexts/SocketContext'; // <-- 상대 경로에서 @/contexts/SocketContext로 변경
+} from '../types/stock';
+import { useSocket } from '../contexts/SocketContext';
 import {
   FiSun,
   FiCloud,
@@ -18,10 +17,12 @@ import {
   FiCloudLightning,
   FiCloudOff,
 } from 'react-icons/fi';
-import LoadingSpinner from '../components/LoadingSpinner'; // <-- 경로 변경 (components/LoadingSpinner -> @/components/LoadingSpinner)
+import LoadingSpinner from '../components/LoadingSpinner';
 
 function StockResultPage() {
   const router = useRouter();
+  const isReady = router.isReady; // ✅ Next.js router.isReady 사용
+
   const {
     socket,
     requestingSocketId,
@@ -42,6 +43,8 @@ function StockResultPage() {
   const [analysisStatus, setAnalysisStatus] = useState<AnalysisProgressData | null>(null);
 
   useEffect(() => {
+    if (!isReady) return; // ✅ router.query 완전히 준비될 때까지 대기
+
     const token = localStorage.getItem('jwtToken');
     if (!token) {
       router.replace('/login');
@@ -61,12 +64,10 @@ function StockResultPage() {
     const stored = sessionStorage.getItem('latestProcessingResult');
     if (stored) {
       const parsed = JSON.parse(stored);
-      // 저장된 결과가 유효한지 추가적으로 검사
       if (parsed.stock && parsed.query === queryFromUrl && parsed.stock.code === corpCodeFromUrl) {
         setDisplayResult(parsed);
         setError(parsed.error || null);
       } else {
-        // 저장된 결과가 현재 요청과 일치하지 않으면 무시
         setDisplayResult(null);
         setError(null);
       }
@@ -79,6 +80,7 @@ function StockResultPage() {
       setProcessingResult(null);
     };
   }, [
+    isReady, // ✅ 추가됨
     router,
     queryFromUrl,
     socketIdFromUrl,
@@ -91,7 +93,6 @@ function StockResultPage() {
     if (!socket) return;
 
     const handleAnalysisProgress = (data: AnalysisProgressData) => {
-      // 현재 요청 중인 소켓 ID와 일치하는 경우에만 상태 업데이트
       if (data.socketId === requestingSocketId) {
         setAnalysisStatus(data);
       }
@@ -102,7 +103,7 @@ function StockResultPage() {
     return () => {
       socket.off('analysisProgress', handleAnalysisProgress);
     };
-  }, [socket, requestingSocketId]); // requestingSocketId를 의존성 배열에 추가
+  }, [socket, requestingSocketId]);
 
   useEffect(() => {
     const isCurrentRequestProcessingResult =
@@ -115,14 +116,13 @@ function StockResultPage() {
       setDisplayResult(processingResult);
       setLoading(false);
       setError(processingResult.error || null);
-      // 정상적으로 데이터를 받았을 때만 sessionStorage에 저장
       if (!processingResult.error) {
         sessionStorage.setItem('latestProcessingResult', JSON.stringify(processingResult));
       }
     }
   }, [processingResult, queryFromUrl, corpCodeFromUrl, requestingSocketId]);
 
-  const getWeatherIconComponent = useCallback((iconName: string | undefined) => { // iconName 타입 수정
+  const getWeatherIconComponent = useCallback((iconName: string | undefined) => {
     const iconSize = 64;
     switch (iconName) {
       case 'sunny':
