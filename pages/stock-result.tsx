@@ -103,7 +103,7 @@ function StockResultPage() {
         setDisplayResult(data);
         setLoading(false);
         setError(data.error || null);
-
+  
         if (!data.error) {
           sessionStorage.setItem('latestProcessingResult', JSON.stringify(data));
         }
