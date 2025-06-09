@@ -43,7 +43,7 @@ function StockResultPage() {
   const [error, setError] = useState<string | null>(null);
   const [analysisStatus, setAnalysisStatus] = useState<AnalysisProgressData | null>(null);
 
-  // 초기 로딩
+  // 1️⃣ 초기 로딩 useEffect → OK
   useEffect(() => {
     const token = localStorage.getItem('jwtToken');
     if (!token) {
@@ -57,12 +57,6 @@ function StockResultPage() {
       return;
     }
 
-    useEffect(() => {
-      if (socket && socketConnected && socketIdFromUrl) {
-        console.log(`[StockResultPage] Setting requestingSocketId=${socketIdFromUrl}`);
-        setRequestingSocketId(socketIdFromUrl);
-      }
-    }, [socket, socketConnected, socketIdFromUrl, setRequestingSocketId]);
     setStockName(queryFromUrl ? decodeURIComponent(queryFromUrl) : null);
     setCorpCode(corpCodeFromUrl ? decodeURIComponent(corpCodeFromUrl) : null);
 
@@ -92,6 +86,14 @@ function StockResultPage() {
     setRequestingSocketId,
     setProcessingResult,
   ]);
+
+  // 2️⃣ socket 연결 안정화 후 requestingSocketId 설정 → 별도 useEffect로 독립
+  useEffect(() => {
+    if (socket && socketConnected && socketIdFromUrl) {
+      console.log(`[StockResultPage] Setting requestingSocketId=${socketIdFromUrl}`);
+      setRequestingSocketId(socketIdFromUrl);
+    }
+  }, [socket, socketConnected, socketIdFromUrl, setRequestingSocketId]);
 
   // 🔥 Socket listener (analysisProgress + processingComplete)
   useEffect(() => {
