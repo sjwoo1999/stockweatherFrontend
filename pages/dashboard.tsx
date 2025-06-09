@@ -181,8 +181,8 @@ function DashboardPage() {
     try {
       await waitForSocketReady(); // socket 안정화 기다리기
   
-      const socketId = socket?.id;
-      if (!socketId) {
+      const latestSocketId = socket?.id;
+      if (!latestSocketId) {
         setError('서버와 실시간 연결이 불안정합니다.');
         return;
       }
@@ -193,12 +193,14 @@ function DashboardPage() {
       setIsAnalysisLoading(true);
       setAnalysisMessage(`'${query}' 분석을 시작합니다...`);
       analysisStartTime.current = Date.now();
-      currentAnalysisSocketId.current = socketId;
-      setRequestingSocketId(socketId);
+      currentAnalysisSocketId.current = latestSocketId;
+      setRequestingSocketId(latestSocketId); // ✅ requestingSocketId 업데이트
   
       await new Promise(resolve => setTimeout(resolve, 100)); // 살짝 delay 유지 (권장)
   
-      await searchStock(query, socketId, corpCode);
+      console.log(`[startAnalysisProcess] searchStock 호출! socketId=${latestSocketId}`);
+      await searchStock(query, latestSocketId, corpCode);
+  
       setAnalysisMessage(`'${query}' 공시 데이터를 분석 중...`);
     } catch (err) {
       const errorMessage = axios.isAxiosError(err)

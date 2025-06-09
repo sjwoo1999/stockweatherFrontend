@@ -1,5 +1,3 @@
-// stockweather-frontend/src/contexts/SocketContext.tsx
-
 import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
 
@@ -15,8 +13,8 @@ interface SocketContextType {
   socketConnected: boolean;
   requestingSocketId: string | null;
   setRequestingSocketId: (id: string | null) => void;
-  processingResult: StockWeatherResponseDto | null; // ✅ 추가
-  setProcessingResult: (result: StockWeatherResponseDto | null) => void; // ✅ 추가
+  processingResult: StockWeatherResponseDto | null;
+  setProcessingResult: (result: StockWeatherResponseDto | null) => void;
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
@@ -26,7 +24,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [socketId, setSocketId] = useState<string | null>(null);
   const [socketConnected, setSocketConnected] = useState<boolean>(false);
   const [requestingSocketId, setRequestingSocketId] = useState<string | null>(null);
-  const [processingResult, setProcessingResult] = useState<StockWeatherResponseDto | null>(null); // ✅ 추가
+  const [processingResult, setProcessingResult] = useState<StockWeatherResponseDto | null>(null);
 
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   const socketUrl = process.env.NEXT_PUBLIC_SOCKET_SERVER_URL || 'http://localhost:3001';
@@ -45,7 +43,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setSocketConnected(false);
       setSocketId(null);
       setRequestingSocketId(null);
-      setProcessingResult(null); // ✅ 초기화
+      setProcessingResult(null);
       return;
     }
 
@@ -61,8 +59,8 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     const newSocket = io(socketUrl, {
       auth: { token: storedToken },
-      transports: ['websocket'], // ⭐️ polling 제거
-      forceNew: false, // 기존 소켓 재사용
+      transports: ['websocket'],
+      forceNew: false,
       autoConnect: true,
       reconnection: true,
       reconnectionAttempts: 5,
@@ -85,7 +83,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setSocketConnected(false);
       setSocketId(null);
       setRequestingSocketId(null);
-      setProcessingResult(null); // ✅ 초기화
+      setProcessingResult(null);
     });
 
     currentSocketInstance.on('connect_error', (err) => {
@@ -93,14 +91,13 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setSocketConnected(false);
       setSocketId(null);
       setRequestingSocketId(null);
-      setProcessingResult(null); // ✅ 초기화
+      setProcessingResult(null);
     });
 
     currentSocketInstance.on('error', (err) => {
       console.error('[Socket.IO] General Error:', err);
     });
 
-    // ✅ 핵심: processingComplete 전역 리스너
     const handleProcessingComplete = (data: StockWeatherResponseDto) => {
       console.log('[SocketContext] processingComplete received:', data);
       setProcessingResult(data);
@@ -115,21 +112,31 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         currentSocketInstance.off('disconnect');
         currentSocketInstance.off('connect_error');
         currentSocketInstance.off('error');
-        currentSocketInstance.off('processingComplete', handleProcessingComplete); // ✅ 클린업
+        currentSocketInstance.off('processingComplete', handleProcessingComplete);
       }
     };
   }, [socketUrl]);
 
+  // ⭐️ socketId mismatch 방지용 useEffect
+  useEffect(() => {
+    if (requestingSocketId && socketId && requestingSocketId !== socketId) {
+      console.warn('[SocketContext] Detected socketId mismatch. Resetting requestingSocketId.');
+      setRequestingSocketId(null);
+    }
+  }, [socketId, requestingSocketId]);
+
   return (
-    <SocketContext.Provider value={{
-      socket,
-      socketId,
-      socketConnected,
-      requestingSocketId,
-      setRequestingSocketId,
-      processingResult, // ✅ 제공
-      setProcessingResult, // ✅ 제공
-    }}>
+    <SocketContext.Provider
+      value={{
+        socket,
+        socketId,
+        socketConnected,
+        requestingSocketId,
+        setRequestingSocketId,
+        processingResult,
+        setProcessingResult,
+      }}
+    >
       {children}
     </SocketContext.Provider>
   );
