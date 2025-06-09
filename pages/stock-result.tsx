@@ -1,3 +1,5 @@
+// src/pages/stock-result.tsx
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
@@ -21,8 +23,6 @@ import LoadingSpinner from '../components/LoadingSpinner';
 
 function StockResultPage() {
   const router = useRouter();
-  const isReady = router.isReady; // ✅ Next.js router.isReady 사용
-
   const {
     socket,
     requestingSocketId,
@@ -42,9 +42,8 @@ function StockResultPage() {
   const [error, setError] = useState<string | null>(null);
   const [analysisStatus, setAnalysisStatus] = useState<AnalysisProgressData | null>(null);
 
+  // 초기 로딩
   useEffect(() => {
-    if (!isReady) return; // ✅ router.query 완전히 준비될 때까지 대기
-
     const token = localStorage.getItem('jwtToken');
     if (!token) {
       router.replace('/login');
@@ -80,7 +79,6 @@ function StockResultPage() {
       setProcessingResult(null);
     };
   }, [
-    isReady, // ✅ 추가됨
     router,
     queryFromUrl,
     socketIdFromUrl,
@@ -89,6 +87,7 @@ function StockResultPage() {
     setProcessingResult,
   ]);
 
+  // 🔥 Socket listener (analysisProgress + processingComplete)
   useEffect(() => {
     if (!socket) return;
 
@@ -98,13 +97,29 @@ function StockResultPage() {
       }
     };
 
+    const handleProcessingComplete = (data: StockWeatherResponseDto) => {
+      if (data.socketId === requestingSocketId) {
+        console.log('[StockResultPage] processingComplete 수신:', data);
+        setDisplayResult(data);
+        setLoading(false);
+        setError(data.error || null);
+
+        if (!data.error) {
+          sessionStorage.setItem('latestProcessingResult', JSON.stringify(data));
+        }
+      }
+    };
+
     socket.on('analysisProgress', handleAnalysisProgress);
+    socket.on('processingComplete', handleProcessingComplete);
 
     return () => {
       socket.off('analysisProgress', handleAnalysisProgress);
+      socket.off('processingComplete', handleProcessingComplete);
     };
   }, [socket, requestingSocketId]);
 
+  // 기존 processingResult 수신 시 처리
   useEffect(() => {
     const isCurrentRequestProcessingResult =
       processingResult &&
@@ -116,6 +131,7 @@ function StockResultPage() {
       setDisplayResult(processingResult);
       setLoading(false);
       setError(processingResult.error || null);
+
       if (!processingResult.error) {
         sessionStorage.setItem('latestProcessingResult', JSON.stringify(processingResult));
       }
