@@ -42,8 +42,9 @@ function StockResultPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [analysisStatus, setAnalysisStatus] = useState<AnalysisProgressData | null>(null);
+  const [hasInitialLoadDone, setHasInitialLoadDone] = useState(false); // ⭐️ 추가됨!
 
-  // 1️⃣ 초기 로딩 useEffect → OK
+  // 1️⃣ 초기 로딩 useEffect
   useEffect(() => {
     const token = localStorage.getItem('jwtToken');
     if (!token) {
@@ -70,13 +71,15 @@ function StockResultPage() {
         setDisplayResult(null);
         setError(null);
       }
-      setLoading(false);
     }
+
+    setHasInitialLoadDone(true); // ⭐️ 초기화 완료
 
     return () => {
       setRequestingSocketId(null);
       setAnalysisStatus(null);
       setProcessingResult(null);
+      setHasInitialLoadDone(false); // ⭐️ cleanup 시 초기화
     };
   }, [
     router,
@@ -87,7 +90,7 @@ function StockResultPage() {
     setProcessingResult,
   ]);
 
-  // 2️⃣ socket 연결 안정화 후 requestingSocketId 설정 → 별도 useEffect로 독립
+  // 2️⃣ socket 연결 안정화 후 requestingSocketId 설정
   useEffect(() => {
     if (socket && socketConnected && socketIdFromUrl) {
       console.log(`[StockResultPage] Setting requestingSocketId=${socketIdFromUrl}`);
@@ -111,7 +114,7 @@ function StockResultPage() {
         setDisplayResult(data);
         setLoading(false);
         setError(data.error || null);
-  
+
         if (!data.error) {
           sessionStorage.setItem('latestProcessingResult', JSON.stringify(data));
         }
@@ -127,8 +130,10 @@ function StockResultPage() {
     };
   }, [socket, requestingSocketId]);
 
-  // 기존 processingResult 수신 시 처리
+  // 기존 processingResult 수신 시 처리 ⭐️ hasInitialLoadDone 체크 추가됨!
   useEffect(() => {
+    if (!hasInitialLoadDone) return; // ⭐️ 초기화 전에는 반영 X
+
     const isCurrentRequestProcessingResult =
       processingResult &&
       processingResult.query === queryFromUrl &&
@@ -136,6 +141,7 @@ function StockResultPage() {
       processingResult.socketId === requestingSocketId;
 
     if (isCurrentRequestProcessingResult) {
+      console.log('[StockResultPage] 최신 processingResult 반영');
       setDisplayResult(processingResult);
       setLoading(false);
       setError(processingResult.error || null);
@@ -144,7 +150,7 @@ function StockResultPage() {
         sessionStorage.setItem('latestProcessingResult', JSON.stringify(processingResult));
       }
     }
-  }, [processingResult, queryFromUrl, corpCodeFromUrl, requestingSocketId]);
+  }, [hasInitialLoadDone, processingResult, queryFromUrl, corpCodeFromUrl, requestingSocketId]);
 
   const getWeatherIconComponent = useCallback((iconName: string | undefined) => {
     const iconSize = 64;
