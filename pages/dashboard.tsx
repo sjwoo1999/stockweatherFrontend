@@ -222,27 +222,25 @@ function DashboardPage() {
   // handleProcessingComplete도 StockWeatherResponseDto를 받도록 수정
   const handleProcessingComplete = useCallback((data: StockWeatherResponseDto) => {
     if (currentAnalysisSocketId.current === data.socketId) {
-      // stopAnalysisProcess 함수는 이제 항상 StockWeatherResponseDto를 인자로 받으므로
-      // 그대로 data를 넘겨주면 됩니다.
-      stopAnalysisProcess(data);
-
-      // 에러가 없고, corpCode가 유효한 경우에만 최근 검색어 업데이트 로직 수행
+      // ✅ 여기서 stopAnalysisProcess 를 호출하되, DashboardPage 에서는 setProcessingResult 를 안 함
+      stopAnalysisProcess(data); // stopAnalysisProcess 에서 navigateToStockResult 로 넘김
+  
+      // ✅ 최근 검색어 업데이트는 여기서 유지 OK
       if (!data.error && data.stock?.code) {
         const currentSelectedStock: SuggestedStock = {
-          name: data.query, // data.query 사용
+          name: data.query,
           code: data.stock.code,
           stock_code: data.stock.stockCode,
         };
-        // 이미 있는 항목은 맨 앞으로 이동, 없으면 추가
         const updatedRecentSearches = [
           currentSelectedStock,
           ...recentSearches.filter(item => item.code !== currentSelectedStock.code)
-        ].slice(0, 5); // 최대 5개 유지
+        ].slice(0, 5);
         setRecentSearches(updatedRecentSearches);
         localStorage.setItem('recentSearches', JSON.stringify(updatedRecentSearches));
       }
     }
-  }, [stopAnalysisProcess, recentSearches]); // 의존성 추가: recentSearches
+  }, [stopAnalysisProcess, recentSearches]);
 
   useEffect(() => {
     if (!socket) return;
