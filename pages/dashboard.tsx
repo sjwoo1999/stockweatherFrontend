@@ -158,47 +158,64 @@ function DashboardPage() {
     }
   }, [navigateToStockResult, setRequestingSocketId]);
 
+  const waitForSocketReady = async () => {
+    return new Promise<void>((resolve, reject) => {
+      const maxWaitTime = 3000; // 최대 3초 기다리기
+      const startTime = Date.now();
+  
+      const interval = setInterval(() => {
+        if (socketConnected && socket && socket.id) {
+          clearInterval(interval);
+          console.log('✅ Socket ready:', socket.id);
+          resolve();
+        } else if (Date.now() - startTime > maxWaitTime) {
+          clearInterval(interval);
+          console.warn('⚠️ Socket not ready after timeout');
+          reject(new Error('소켓 연결이 지연되고 있습니다.'));
+        }
+      }, 50); // 50ms 간격으로 체크
+    });
+  };
 
   const startAnalysisProcess = useCallback(async (query: string, corpCode: string) => {
-    if (!socketConnected || !socket) {
-      setError('서버와 실시간 연결이 불안정합니다.');
-      return;
-    }
-
-    const socketId = socket.id; // 최신 socket.id 가져오기
-
-    if (!socketId) {
-      setError('서버와 실시간 연결이 불안정합니다.');
-      return;
-    }
-
-    if (isAnalysisLoading) return; // 이미 분석 중이면 중복 실행 방지
-
-    setError(null); // 새로운 분석 시작 시 기존 에러 초기화
-    setIsAnalysisLoading(true);
-    setAnalysisMessage(`'${query}' 분석을 시작합니다...`);
-    analysisStartTime.current = Date.now();
-    currentAnalysisSocketId.current = socketId;
-    setRequestingSocketId(socketId);
-
-    await new Promise(resolve => setTimeout(resolve, 100));
-
     try {
+      await waitForSocketReady(); // socket 안정화 기다리기
+  
+      const socketId = socket?.id;
+      if (!socketId) {
+        setError('서버와 실시간 연결이 불안정합니다.');
+        return;
+      }
+  
+      if (isAnalysisLoading) return; // 이미 분석 중이면 중복 실행 방지
+  
+      setError(null); // 새로운 분석 시작 시 기존 에러 초기화
+      setIsAnalysisLoading(true);
+      setAnalysisMessage(`'${query}' 분석을 시작합니다...`);
+      analysisStartTime.current = Date.now();
+      currentAnalysisSocketId.current = socketId;
+      setRequestingSocketId(socketId);
+  
+      await new Promise(resolve => setTimeout(resolve, 100)); // 살짝 delay 유지 (권장)
+  
       await searchStock(query, socketId, corpCode);
       setAnalysisMessage(`'${query}' 공시 데이터를 분석 중...`);
     } catch (err) {
-      // Axios 에러 발생 시 처리
-      const errorMessage = axios.isAxiosError(err) ? err.response?.data?.message || '분석 요청에 실패했습니다.' : '알 수 없는 오류가 발생했습니다.';
-      // stopAnalysisProcess에 StockWeatherResponseDto 타입의 에러 객체를 넘깁니다.
+      const errorMessage = axios.isAxiosError(err)
+        ? err.response?.data?.message || '분석 요청에 실패했습니다.'
+        : err instanceof Error
+          ? err.message
+          : '알 수 없는 오류가 발생했습니다.';
+  
       stopAnalysisProcess({
-        query: query,
-        socketId: socketId,
+        query,
+        socketId: socket?.id || '',
         error: errorMessage,
-        // StockWeatherResponseDto에 필수는 아니지만, 오류 객체에 포함될 수 있는 다른 속성들은 생략
       });
-      setError(errorMessage); // 상태 에러 메시지 설정
+  
+      setError(errorMessage);
     }
-  }, [socket, socketId, socketConnected, isAnalysisLoading, setRequestingSocketId, stopAnalysisProcess]);
+  }, [socket, socketConnected, isAnalysisLoading, setRequestingSocketId, stopAnalysisProcess]);
 
   // handleProcessingComplete도 StockWeatherResponseDto를 받도록 수정
   const handleProcessingComplete = useCallback((data: StockWeatherResponseDto) => {
