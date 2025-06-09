@@ -5,9 +5,11 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          light: '#FFF9F8',
-          primary: '#E30547',
-          dark: '#1A1A1A',
+          light: '#F9F5FF',
+          primary: '#9333EA',
+          dark: '#4B1C8C',
+          hover: '#7E22CE',
+          focus: '#A855F7',
         },
         surface: {
           base: '#FFFFFF',
