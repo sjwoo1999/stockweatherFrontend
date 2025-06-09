@@ -80,7 +80,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
           </p>
         )}
         <p className="text-sm text-gray-500 animate-fade-in-up delay-200">
-          AI가 방대한 데이터를 학습하고 최적의 결과를 도출 중입니다.
+          공시 데이터 속 숨은 흐름을 읽고 있어요...
         </p>
       </div>
 
