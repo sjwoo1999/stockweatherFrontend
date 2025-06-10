@@ -1,140 +1,66 @@
-import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
+// src/contexts/SocketContext.tsx
+
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-import {
-  ServerToClientEvents,
-  ClientToServerEvents,
-  StockWeatherResponseDto,
-} from '../types/stock';
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'https://stockweather-websocket-xxx.run.app';
 
-interface SocketContextType {
-  socket: Socket<ServerToClientEvents, ClientToServerEvents> | null;
-  socketId: string | null;
+type SocketContextType = {
+  socket: Socket | null;
   socketConnected: boolean;
+  socketId: string | null;
   requestingSocketId: string | null;
   setRequestingSocketId: (id: string | null) => void;
-  processingResult: StockWeatherResponseDto | null;
-  setProcessingResult: (result: StockWeatherResponseDto | null) => void;
-}
+  processingResult: any;
+  setProcessingResult: (result: any) => void;
+};
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
 
-export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
+export const SocketProvider = ({ children }: { children: ReactNode }) => {
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [socketConnected, setSocketConnected] = useState(false);
   const [socketId, setSocketId] = useState<string | null>(null);
-  const [socketConnected, setSocketConnected] = useState<boolean>(false);
   const [requestingSocketId, setRequestingSocketId] = useState<string | null>(null);
-  const [processingResult, setProcessingResult] = useState<StockWeatherResponseDto | null>(null);
-
-  const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
-  const socketUrl = process.env.NEXT_PUBLIC_SOCKET_SERVER_URL || 'http://localhost:3001';
+  const [processingResult, setProcessingResult] = useState<any>(null);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const storedToken = localStorage.getItem('jwtToken');
-
-    if (!storedToken) {
-      if (socketRef.current && socketRef.current.connected) {
-        socketRef.current.disconnect();
-      }
-      socketRef.current = null;
-      setSocket(null);
-      setSocketConnected(false);
-      setSocketId(null);
-      setRequestingSocketId(null);
-      setProcessingResult(null);
-      return;
-    }
-
-    if (socketRef.current && socketRef.current.connected) {
-      const currentAuth = socketRef.current.auth;
-      if (currentAuth && typeof currentAuth === 'object' && 'token' in currentAuth && currentAuth.token === storedToken) {
-        setSocket(socketRef.current);
-        setSocketConnected(true);
-        setSocketId(socketRef.current.id || null);
-        return;
-      }
-    }
-
-    const newSocket = io(socketUrl, {
-      auth: { token: storedToken },
+    const newSocket = io(SOCKET_URL, {
       transports: ['websocket'],
-      forceNew: false,
-      autoConnect: true,
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
     });
 
-    socketRef.current = newSocket;
     setSocket(newSocket);
 
-    const currentSocketInstance = newSocket;
-
-    currentSocketInstance.on('connect', () => {
-      console.log('[Socket.IO] Connected to server:', currentSocketInstance.id);
+    newSocket.on('connect', () => {
+      console.log('[Socket] Connected:', newSocket.id);
       setSocketConnected(true);
-      setSocketId(currentSocketInstance.id || null);
+      setSocketId(newSocket.id);
     });
 
-    currentSocketInstance.on('disconnect', (reason) => {
-      console.log('[Socket.IO] Disconnected from server:', reason);
+    newSocket.on('disconnect', (reason) => {
+      console.warn('[Socket] Disconnected:', reason);
       setSocketConnected(false);
       setSocketId(null);
-      setRequestingSocketId(null);
-      setProcessingResult(null);
     });
 
-    currentSocketInstance.on('connect_error', (err) => {
-      console.error('[Socket.IO] Connection Error:', err.message, err);
-      setSocketConnected(false);
-      setSocketId(null);
-      setRequestingSocketId(null);
-      setProcessingResult(null);
+    // reconnect 처리
+    newSocket.io.on('reconnect', (attempt) => {
+      console.log(`[Socket] Reconnected on attempt ${attempt}`);
+      setSocketConnected(true);
+      setSocketId(newSocket.id); // 새 ID 갱신
     });
-
-    currentSocketInstance.on('error', (err) => {
-      console.error('[Socket.IO] General Error:', err);
-    });
-
-    const handleProcessingComplete = (data: StockWeatherResponseDto) => {
-      console.log('[SocketContext] processingComplete received:', data);
-      setProcessingResult(data);
-    };
-
-    currentSocketInstance.on('processingComplete', handleProcessingComplete);
 
     return () => {
-      if (currentSocketInstance) {
-        console.log('[Socket.IO] Cleaning up Socket.IO listeners.');
-        currentSocketInstance.off('connect');
-        currentSocketInstance.off('disconnect');
-        currentSocketInstance.off('connect_error');
-        currentSocketInstance.off('error');
-        currentSocketInstance.off('processingComplete', handleProcessingComplete);
-      }
+      newSocket.disconnect();
     };
   }, []);
-
-  // ⭐️ socketId mismatch 방지용 useEffect
-  useEffect(() => {
-    if (requestingSocketId && socketId) {
-      const isStaleRequest = !socket?.connected || socket.id !== requestingSocketId;
-  
-      if (isStaleRequest) {
-        console.warn('[SocketContext] Detected stale requestingSocketId. Resetting requestingSocketId.');
-        setRequestingSocketId(null);
-      }
-    }
-  }, [socket, socketId, requestingSocketId]);
 
   return (
     <SocketContext.Provider
       value={{
         socket,
-        socketId,
         socketConnected,
+        socketId,
         requestingSocketId,
         setRequestingSocketId,
         processingResult,
@@ -148,8 +74,6 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
 export const useSocket = () => {
   const context = useContext(SocketContext);
-  if (context === undefined) {
-    throw new Error('useSocket must be used within a SocketProvider');
-  }
+  if (!context) throw new Error('useSocket must be used within a SocketProvider');
   return context;
 };
