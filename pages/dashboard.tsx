@@ -22,8 +22,8 @@ const MIN_LOADING_DURATION = 1500;
 
 function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
-  const [appLoading, setAppLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [_appLoading, setAppLoading] = useState<boolean>(true);
+  const [_error, setError] = useState<string | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [recentSearches, setRecentSearches] = useState<SuggestedStock[]>([]);
@@ -39,7 +39,7 @@ function DashboardPage() {
   const currentAnalysisSocketId = useRef<string | null>(null);
 
   const router = useRouter();
-  const { socket, socketId, socketConnected, setRequestingSocketId } = useSocket();
+  const { socket, /*socketId,*/ socketConnected, setRequestingSocketId } = useSocket();
 
   const fetchUserProfileAndRecentSearches = useCallback(async () => {
     try {
@@ -91,11 +91,11 @@ function DashboardPage() {
             setSelectedCorpCode(null);
             setSelectedStockName(null);
           }
-        } catch (err) {
+        } /*catch (err) {
           setSuggestedStocks([]);
           setSelectedCorpCode(null);
           setSelectedStockName(null);
-        } finally {
+        }*/ finally {
           setLoadingSuggestions(false);
         }
       } else {
@@ -158,24 +158,21 @@ function DashboardPage() {
     }
   }, [navigateToStockResult, setRequestingSocketId]);
 
-  const waitForSocketReady = async () => {
+  const waitForSocketReady = useCallback(() => {
     return new Promise<void>((resolve, reject) => {
-      const maxWaitTime = 3000; // 최대 3초 기다리기
+      const maxWaitTime = 3000;
       const startTime = Date.now();
-  
       const interval = setInterval(() => {
-        if (socketConnected && socket && socket.id) {
+        if (socketConnected && socket?.id) {
           clearInterval(interval);
-          console.log('✅ Socket ready:', socket.id);
           resolve();
         } else if (Date.now() - startTime > maxWaitTime) {
           clearInterval(interval);
-          console.warn('⚠️ Socket not ready after timeout');
           reject(new Error('소켓 연결이 지연되고 있습니다.'));
         }
-      }, 50); // 50ms 간격으로 체크
+      }, 50);
     });
-  };
+  }, [socket, socketConnected]);
 
   const startAnalysisProcess = useCallback(async (query: string, corpCode: string) => {
     try {
@@ -217,7 +214,7 @@ function DashboardPage() {
   
       setError(errorMessage);
     }
-  }, [socket, socketConnected, isAnalysisLoading, setRequestingSocketId, stopAnalysisProcess]);
+  }, [socket, /*socketConnected,*/ isAnalysisLoading, setRequestingSocketId, stopAnalysisProcess, waitForSocketReady]);
 
   // handleProcessingComplete도 StockWeatherResponseDto를 받도록 수정
   const handleProcessingComplete = useCallback((data: StockWeatherResponseDto) => {
