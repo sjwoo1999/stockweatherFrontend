@@ -73,9 +73,15 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const currentSocketInstance = newSocket;
 
     currentSocketInstance.on('connect', () => {
-      console.log('[Socket.IO] Connected to server:', currentSocketInstance.id);
-      setSocketConnected(true);
-      setSocketId(currentSocketInstance.id ?? null);
+      const id = currentSocketInstance.id;
+      if (id) {
+        console.log('[Socket.IO] Connected to server:', id);
+        setSocketId(id);
+        setSocketConnected(true);
+      } else {
+        console.warn('[Socket.IO] Connected but missing socket.id!');
+        setSocketConnected(true); // 연결만 확인
+      }
     });
 
     currentSocketInstance.on('disconnect', (reason) => {

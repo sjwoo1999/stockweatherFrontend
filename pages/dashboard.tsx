@@ -218,24 +218,22 @@ function DashboardPage() {
 
   // handleProcessingComplete도 StockWeatherResponseDto를 받도록 수정
   const handleProcessingComplete = useCallback((data: StockWeatherResponseDto) => {
-    if (currentAnalysisSocketId.current === data.socketId) {
-      // ✅ 여기서 stopAnalysisProcess 를 호출하되, DashboardPage 에서는 setProcessingResult 를 안 함
-      stopAnalysisProcess(data); // stopAnalysisProcess 에서 navigateToStockResult 로 넘김
+    // 무조건 처리 (일시적 socketId mismatch 대응)
+    stopAnalysisProcess(data);
   
-      // ✅ 최근 검색어 업데이트는 여기서 유지 OK
-      if (!data.error && data.stock?.code) {
-        const currentSelectedStock: SuggestedStock = {
-          name: data.query,
-          code: data.stock.code,
-          stock_code: data.stock.stockCode,
-        };
-        const updatedRecentSearches = [
-          currentSelectedStock,
-          ...recentSearches.filter(item => item.code !== currentSelectedStock.code)
-        ].slice(0, 5);
-        setRecentSearches(updatedRecentSearches);
-        localStorage.setItem('recentSearches', JSON.stringify(updatedRecentSearches));
-      }
+    // 최근 검색어 업데이트 로직 유지
+    if (!data.error && data.stock?.code) {
+      const currentSelectedStock: SuggestedStock = {
+        name: data.query,
+        code: data.stock.code,
+        stock_code: data.stock.stockCode,
+      };
+      const updatedRecentSearches = [
+        currentSelectedStock,
+        ...recentSearches.filter(item => item.code !== currentSelectedStock.code)
+      ].slice(0, 5);
+      setRecentSearches(updatedRecentSearches);
+      localStorage.setItem('recentSearches', JSON.stringify(updatedRecentSearches));
     }
   }, [stopAnalysisProcess, recentSearches]);
 
