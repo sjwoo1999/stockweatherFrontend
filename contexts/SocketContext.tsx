@@ -29,8 +29,29 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [isSocketReady, setIsSocketReady] = useState<boolean>(false);
 
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
-  const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const socketUrl = process.env.NEXT_PUBLIC_SOCKET_SERVER_URL || 'https://stockweather-websocket-1011872961068.asia-northeast3.run.app';
+
+  const createSocketConnection = () => {
+    if (typeof window === 'undefined') return null;
+
+    const storedToken = localStorage.getItem('jwtToken');
+    if (!storedToken) return null;
+
+    const newSocket = io(socketUrl, {
+      auth: { token: storedToken },
+      transports: ['websocket'], // WebSocket만 사용하여 안정성 향상
+      forceNew: true, // 새로운 연결 강제 생성
+      autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
+    });
+
+    return newSocket;
+  };
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -75,7 +96,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
 
     const connectionTimeout = 10000;
-    connectionTimeoutRef.current = setTimeout(() => {
+    reconnectTimeoutRef.current = setTimeout(() => {
       console.error('[Socket.IO] Connection timeout');
       setSocketConnected(false);
       setSocketId(null);
@@ -84,7 +105,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     const newSocket = io(socketUrl, {
       auth: { token: storedToken },
-      transports: ['websocket', 'polling'],
+      transports: ['websocket'], // WebSocket만 사용하여 안정성 향상
       forceNew: true,
       autoConnect: true,
       reconnection: true,
@@ -92,8 +113,6 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       timeout: 20000,
-      upgrade: true,
-      rememberUpgrade: true,
     });
 
     socketRef.current = newSocket;
@@ -102,9 +121,9 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const currentSocketInstance = newSocket;
 
     currentSocketInstance.on('connect', () => {
-      if (connectionTimeoutRef.current) {
-        clearTimeout(connectionTimeoutRef.current);
-        connectionTimeoutRef.current = null;
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
       }
 
       const id = currentSocketInstance.id;
@@ -188,8 +207,8 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     currentSocketInstance.on('processingComplete', handleProcessingComplete);
 
     return () => {
-      if (connectionTimeoutRef.current) {
-        clearTimeout(connectionTimeoutRef.current);
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
       }
       if (currentSocketInstance) {
         console.log('[Socket.IO] Cleaning up Socket.IO listeners.');
