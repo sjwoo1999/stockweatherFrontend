@@ -32,12 +32,6 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const socketUrl = process.env.NEXT_PUBLIC_SOCKET_SERVER_URL || 'https://stockweather-websocket-1011872961068.asia-northeast3.run.app';
 
-  const checkSocketReady = useRef(() => {
-    const isReady = Boolean(socketConnected && socketId && socket?.connected);
-    setIsSocketReady(isReady);
-    return isReady;
-  });
-
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -211,10 +205,6 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       }
     };
   }, []);
-
-  useEffect(() => {
-    checkSocketReady.current();
-  }, [socketConnected, socketId, socket]);
 
   useEffect(() => {
     if (requestingSocketId && socketId) {
