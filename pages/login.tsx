@@ -28,6 +28,10 @@ function LoginPage() {
       if (typeof window !== 'undefined') {
         // console.group('LoginPage useEffect 시작');
         // console.log('1. LoginPage: 페이지 로드 시점');
+        
+        // 기존 JWT 토큰 초기화 (디버깅용)
+        localStorage.removeItem('jwtToken');
+        
         const token = localStorage.getItem('jwtToken');
         // console.log('2. LoginPage: localStorage 토큰 확인 결과:', token ? '존재함 (값: ' + token.substring(0, 30) + '...)' : '없음');
 
