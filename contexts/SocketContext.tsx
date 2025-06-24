@@ -30,7 +30,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const socketUrl = process.env.NEXT_PUBLIC_SOCKET_SERVER_URL || 'http://localhost:5001';
+  const socketUrl = process.env.NEXT_PUBLIC_SOCKET_SERVER_URL || 'https://stockweather-websocket-1011872961068.asia-northeast3.run.app';
 
   const checkSocketReady = useRef(() => {
     const isReady = Boolean(socketConnected && socketId && socket?.connected);
@@ -44,6 +44,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const storedToken = localStorage.getItem('jwtToken');
 
     if (!storedToken) {
+      console.log('[Socket.IO] JWT 토큰이 없습니다. 로그인이 필요합니다.');
       if (socketRef.current && socketRef.current.connected) {
         socketRef.current.disconnect();
       }
@@ -53,6 +54,14 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setSocketId(null);
       setRequestingSocketId(null);
       setProcessingResult(null);
+      setIsSocketReady(false);
+      return;
+    }
+
+    if (!storedToken.startsWith('Bearer ')) {
+      console.warn('[Socket.IO] JWT 토큰 형식이 올바르지 않습니다.');
+      setSocketConnected(false);
+      setSocketId(null);
       setIsSocketReady(false);
       return;
     }
@@ -81,7 +90,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     const newSocket = io(socketUrl, {
       auth: { token: storedToken },
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'],
       forceNew: true,
       autoConnect: true,
       reconnection: true,
@@ -89,6 +98,8 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       timeout: 20000,
+      upgrade: true,
+      rememberUpgrade: true,
     });
 
     socketRef.current = newSocket;
@@ -126,6 +137,17 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     currentSocketInstance.on('connect_error', (err) => {
       console.error('[Socket.IO] Connection Error:', err.message, err);
+      
+      // 🔥 JWT 인증 에러 특별 처리
+      if (err.message.includes('Invalid or expired token') || err.message.includes('auth_error')) {
+        console.error('[Socket.IO] JWT 인증 실패. 로그인이 필요합니다.');
+        // JWT 토큰 제거하고 로그인 페이지로 리다이렉트
+        localStorage.removeItem('jwtToken');
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
+      }
+      
       setSocketConnected(false);
       setSocketId(null);
       setRequestingSocketId(null);

@@ -1,7 +1,7 @@
 // stockweather-frontend/src/api/axiosInstance.ts
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5001';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://stockweather-rest-api-1011872961068.asia-northeast3.run.app';
 
 const instance = axios.create({
   baseURL: API_BASE_URL,
