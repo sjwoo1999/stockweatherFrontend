@@ -38,8 +38,16 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const storedToken = localStorage.getItem('jwtToken');
     if (!storedToken) return null;
 
+    // JWT 토큰 형식 검증 (Bearer 접두사 제거)
+    const cleanToken = storedToken.startsWith('Bearer ') ? storedToken.substring(7) : storedToken;
+    
+    if (!cleanToken || cleanToken.length < 10) {
+      console.warn('[Socket.IO] JWT 토큰이 유효하지 않습니다.');
+      return null;
+    }
+
     const newSocket = io(socketUrl, {
-      auth: { token: storedToken },
+      auth: { token: cleanToken },
       transports: ['websocket'], // WebSocket만 사용하여 안정성 향상
       forceNew: true, // 새로운 연결 강제 생성
       autoConnect: true,
@@ -73,8 +81,11 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       return;
     }
 
-    if (!storedToken.startsWith('Bearer ')) {
-      console.warn('[Socket.IO] JWT 토큰 형식이 올바르지 않습니다.');
+    // JWT 토큰 형식 검증 (Bearer 접두사 제거)
+    const cleanToken = storedToken.startsWith('Bearer ') ? storedToken.substring(7) : storedToken;
+    
+    if (!cleanToken || cleanToken.length < 10) {
+      console.warn('[Socket.IO] JWT 토큰이 유효하지 않습니다.');
       setSocketConnected(false);
       setSocketId(null);
       setIsSocketReady(false);
@@ -83,7 +94,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     if (socketRef.current && socketRef.current.connected) {
       const currentAuth = socketRef.current.auth;
-      if (currentAuth && typeof currentAuth === 'object' && 'token' in currentAuth && currentAuth.token === storedToken) {
+      if (currentAuth && typeof currentAuth === 'object' && 'token' in currentAuth && currentAuth.token === cleanToken) {
         const currentId = socketRef.current.id;
         if (currentId) {
           setSocket(socketRef.current);
@@ -104,7 +115,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }, connectionTimeout);
 
     const newSocket = io(socketUrl, {
-      auth: { token: storedToken },
+      auth: { token: cleanToken },
       transports: ['websocket'], // WebSocket만 사용하여 안정성 향상
       forceNew: true,
       autoConnect: true,
