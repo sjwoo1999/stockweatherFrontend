@@ -20,6 +20,8 @@ import {
   FiCloudOff,
 } from 'react-icons/fi';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { isSocketHealthy } from '../libs/socketUtils'; // 🔥 새로운 유틸리티 import
+import SocketStatusMonitor from '../components/SocketStatusMonitor'; // 🔥 소켓 상태 모니터 추가
 
 function StockResultPage() {
   const router = useRouter();
@@ -30,6 +32,7 @@ function StockResultPage() {
     setRequestingSocketId,
     processingResult,
     setProcessingResult,
+    isSocketReady,
   } = useSocket();
 
   const queryFromUrl = router.query.query as string;
@@ -90,17 +93,17 @@ function StockResultPage() {
     setProcessingResult,
   ]);
 
-  // 2️⃣ socket 연결 안정화 후 requestingSocketId 설정
+  // 2️⃣ socket 연결 안정화 후 requestingSocketId 설정 (개선됨)
   useEffect(() => {
-    if (socket && socketConnected && socketIdFromUrl) {
+    if (isSocketReady && socketIdFromUrl && isSocketHealthy(socket)) { // 🔥 유틸리티 함수로 검증 강화
       console.log(`[StockResultPage] Setting requestingSocketId=${socketIdFromUrl}`);
       setRequestingSocketId(socketIdFromUrl);
     }
-  }, [socket, socketConnected, socketIdFromUrl, setRequestingSocketId]);
+  }, [isSocketReady, socketIdFromUrl, setRequestingSocketId, socket]); // 🔥 socket 의존성 추가
 
-  // 🔥 Socket listener (analysisProgress + processingComplete)
+  // 🔥 Socket listener (analysisProgress + processingComplete) - 개선됨
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || !isSocketReady || !isSocketHealthy(socket)) return; // 🔥 유틸리티 함수로 검증 강화
 
     const handleAnalysisProgress = (data: AnalysisProgressData) => {
       if (data.socketId === requestingSocketId) {
@@ -128,7 +131,7 @@ function StockResultPage() {
       socket.off('analysisProgress', handleAnalysisProgress);
       socket.off('processingComplete', handleProcessingComplete);
     };
-  }, [socket, requestingSocketId]);
+  }, [socket, isSocketReady, requestingSocketId]); // 🔥 isSocketReady 의존성 추가
 
   // 기존 processingResult 수신 시 처리 ⭐️ hasInitialLoadDone 체크 추가됨!
   useEffect(() => {
@@ -360,6 +363,8 @@ function StockResultPage() {
         </div>
 
       </div>
+
+      <SocketStatusMonitor />
     </div>
   );
 }

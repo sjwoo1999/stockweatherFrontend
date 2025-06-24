@@ -17,6 +17,8 @@ import { useSocket } from '../contexts/SocketContext';
 import { searchStock, fetchStockSuggestions } from '../services/stockService';
 import LoadingSpinner from '../components/LoadingSpinner';
 import axiosInstance from '../api/axiosInstance';
+import { waitForSocketConnection, isSocketHealthy } from '../libs/socketUtils'; // 🔥 새로운 유틸리티 import
+import SocketStatusMonitor from '../components/SocketStatusMonitor'; // 🔥 소켓 상태 모니터 추가
 
 const MIN_LOADING_DURATION = 1500;
 
@@ -39,7 +41,7 @@ function DashboardPage() {
   const currentAnalysisSocketId = useRef<string | null>(null);
 
   const router = useRouter();
-  const { socket, /*socketId,*/ socketConnected, setRequestingSocketId } = useSocket();
+  const { socket, /*socketId,*/ socketConnected, setRequestingSocketId, isSocketReady } = useSocket();
 
   const fetchUserProfileAndRecentSearches = useCallback(async () => {
     try {
@@ -159,28 +161,16 @@ function DashboardPage() {
   }, [navigateToStockResult, setRequestingSocketId]);
 
   const waitForSocketReady = useCallback(() => {
-    return new Promise<void>((resolve, reject) => {
-      const maxWaitTime = 3000;
-      const startTime = Date.now();
-      const interval = setInterval(() => {
-        if (socketConnected && socket?.id) {
-          clearInterval(interval);
-          resolve();
-        } else if (Date.now() - startTime > maxWaitTime) {
-          clearInterval(interval);
-          reject(new Error('소켓 연결이 지연되고 있습니다.'));
-        }
-      }, 50);
-    });
-  }, [socket, socketConnected]);
+    return waitForSocketConnection(socket, 15000); // 🔥 유틸리티 함수 사용
+  }, [socket]);
 
   const startAnalysisProcess = useCallback(async (query: string, corpCode: string) => {
     try {
       await waitForSocketReady(); // socket 안정화 기다리기
   
       const latestSocketId = socket?.id;
-      if (!latestSocketId) {
-        setError('서버와 실시간 연결이 불안정합니다.');
+      if (!latestSocketId || !isSocketHealthy(socket)) { // 🔥 유틸리티 함수로 검증 강화
+        setError('서버와 실시간 연결이 불안정합니다. 페이지를 새로고침 후 다시 시도해주세요.');
         return;
       }
   
@@ -193,7 +183,13 @@ function DashboardPage() {
       currentAnalysisSocketId.current = latestSocketId;
       setRequestingSocketId(latestSocketId); // ✅ requestingSocketId 업데이트
   
-      await new Promise(resolve => setTimeout(resolve, 100)); // 살짝 delay 유지 (권장)
+      // 🔥 소켓 상태 재확인
+      await new Promise(resolve => setTimeout(resolve, 200)); // 🔥 200ms로 증가
+  
+      // 🔥 소켓 ID가 여전히 유효한지 재확인
+      if (!isSocketHealthy(socket) || socket?.id !== latestSocketId) { // 🔥 유틸리티 함수 사용
+        throw new Error('소켓 연결이 변경되었습니다. 다시 시도해주세요.');
+      }
   
       console.log(`[startAnalysisProcess] searchStock 호출! socketId=${latestSocketId}`);
       await searchStock(query, latestSocketId, corpCode);
@@ -214,7 +210,7 @@ function DashboardPage() {
   
       setError(errorMessage);
     }
-  }, [socket, /*socketConnected,*/ isAnalysisLoading, setRequestingSocketId, stopAnalysisProcess, waitForSocketReady]);
+  }, [socket, isAnalysisLoading, setRequestingSocketId, stopAnalysisProcess, waitForSocketReady]);
 
   // handleProcessingComplete도 StockWeatherResponseDto를 받도록 수정
   const handleProcessingComplete = useCallback((data: StockWeatherResponseDto) => {
@@ -459,6 +455,9 @@ function DashboardPage() {
       {isAnalysisLoading && (
         <LoadingSpinner message={analysisMessage} />
       )}
+
+      {/* 소켓 상태 모니터 */}
+      <SocketStatusMonitor />
     </div>
   );
 }

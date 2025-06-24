@@ -15,6 +15,7 @@ interface SocketContextType {
   setRequestingSocketId: (id: string | null) => void;
   processingResult: StockWeatherResponseDto | null;
   setProcessingResult: (result: StockWeatherResponseDto | null) => void;
+  isSocketReady: boolean;
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
@@ -25,9 +26,17 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [socketConnected, setSocketConnected] = useState<boolean>(false);
   const [requestingSocketId, setRequestingSocketId] = useState<string | null>(null);
   const [processingResult, setProcessingResult] = useState<StockWeatherResponseDto | null>(null);
+  const [isSocketReady, setIsSocketReady] = useState<boolean>(false);
 
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
-  const socketUrl = process.env.NEXT_PUBLIC_SOCKET_SERVER_URL || 'http://localhost:3001';
+  const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const socketUrl = process.env.NEXT_PUBLIC_SOCKET_SERVER_URL || 'http://localhost:5001';
+
+  const checkSocketReady = useRef(() => {
+    const isReady = Boolean(socketConnected && socketId && socket?.connected);
+    setIsSocketReady(isReady);
+    return isReady;
+  });
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -44,27 +53,42 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setSocketId(null);
       setRequestingSocketId(null);
       setProcessingResult(null);
+      setIsSocketReady(false);
       return;
     }
 
     if (socketRef.current && socketRef.current.connected) {
       const currentAuth = socketRef.current.auth;
       if (currentAuth && typeof currentAuth === 'object' && 'token' in currentAuth && currentAuth.token === storedToken) {
-        setSocket(socketRef.current);
-        setSocketConnected(true);
-        setSocketId(socketRef.current.id || null);
-        return;
+        const currentId = socketRef.current.id;
+        if (currentId) {
+          setSocket(socketRef.current);
+          setSocketConnected(true);
+          setSocketId(currentId);
+          setIsSocketReady(true);
+          return;
+        }
       }
     }
+
+    const connectionTimeout = 10000;
+    connectionTimeoutRef.current = setTimeout(() => {
+      console.error('[Socket.IO] Connection timeout');
+      setSocketConnected(false);
+      setSocketId(null);
+      setIsSocketReady(false);
+    }, connectionTimeout);
 
     const newSocket = io(socketUrl, {
       auth: { token: storedToken },
       transports: ['websocket'],
-      forceNew: false,
+      forceNew: true,
       autoConnect: true,
       reconnection: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: 10,
       reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
     });
 
     socketRef.current = newSocket;
@@ -73,14 +97,21 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const currentSocketInstance = newSocket;
 
     currentSocketInstance.on('connect', () => {
+      if (connectionTimeoutRef.current) {
+        clearTimeout(connectionTimeoutRef.current);
+        connectionTimeoutRef.current = null;
+      }
+
       const id = currentSocketInstance.id;
       if (id) {
         console.log('[Socket.IO] Connected to server:', id);
         setSocketId(id);
         setSocketConnected(true);
+        setIsSocketReady(true);
       } else {
         console.warn('[Socket.IO] Connected but missing socket.id!');
-        setSocketConnected(true); // 연결만 확인
+        setSocketConnected(true);
+        setIsSocketReady(false);
       }
     });
 
@@ -90,6 +121,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setSocketId(null);
       setRequestingSocketId(null);
       setProcessingResult(null);
+      setIsSocketReady(false);
     });
 
     currentSocketInstance.on('connect_error', (err) => {
@@ -98,10 +130,38 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setSocketId(null);
       setRequestingSocketId(null);
       setProcessingResult(null);
+      setIsSocketReady(false);
     });
 
     currentSocketInstance.on('error', (err) => {
       console.error('[Socket.IO] General Error:', err);
+    });
+
+    currentSocketInstance.on('reconnect_attempt', (attemptNumber) => {
+      console.log(`[Socket.IO] Reconnection attempt ${attemptNumber}`);
+    });
+
+    currentSocketInstance.on('reconnect', (attemptNumber) => {
+      console.log(`[Socket.IO] Reconnected after ${attemptNumber} attempts`);
+      const id = currentSocketInstance.id;
+      if (id) {
+        setSocketId(id);
+        setSocketConnected(true);
+        setIsSocketReady(true);
+      }
+    });
+
+    currentSocketInstance.on('connectionConfirmed', (data) => {
+      console.log('[Socket.IO] Connection confirmed by server:', data);
+    });
+
+    currentSocketInstance.on('auth_error', (error) => {
+      console.error('[Socket.IO] Authentication error:', error);
+      setSocketConnected(false);
+      setSocketId(null);
+      setRequestingSocketId(null);
+      setProcessingResult(null);
+      setIsSocketReady(false);
     });
 
     const handleProcessingComplete = (data: StockWeatherResponseDto) => {
@@ -112,18 +172,28 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     currentSocketInstance.on('processingComplete', handleProcessingComplete);
 
     return () => {
+      if (connectionTimeoutRef.current) {
+        clearTimeout(connectionTimeoutRef.current);
+      }
       if (currentSocketInstance) {
         console.log('[Socket.IO] Cleaning up Socket.IO listeners.');
         currentSocketInstance.off('connect');
         currentSocketInstance.off('disconnect');
         currentSocketInstance.off('connect_error');
         currentSocketInstance.off('error');
+        currentSocketInstance.off('reconnect_attempt');
+        currentSocketInstance.off('reconnect');
+        currentSocketInstance.off('connectionConfirmed');
+        currentSocketInstance.off('auth_error');
         currentSocketInstance.off('processingComplete', handleProcessingComplete);
       }
     };
   }, []);
 
-  // ⭐️ socketId mismatch 방지용 useEffect
+  useEffect(() => {
+    checkSocketReady.current();
+  }, [socketConnected, socketId, socket]);
+
   useEffect(() => {
     if (requestingSocketId && socketId) {
       const isStaleRequest = !socket?.connected || socket.id !== requestingSocketId;
@@ -145,6 +215,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         setRequestingSocketId,
         processingResult,
         setProcessingResult,
+        isSocketReady,
       }}
     >
       {children}

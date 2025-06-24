@@ -83,6 +83,8 @@ export interface DisclosureItem {
     analysisProgress: (data: AnalysisProgressData) => void;
     processingComplete: (data: StockWeatherResponseDto) => void; // 이제 error 속성이 StockWeatherResponseDto 안에 포함됨
     'error': (error: Error) => void; // 일반적인 소켓 에러
+    connectionConfirmed: (data: { message: string; socketId: string }) => void; // 🔥 연결 확인 이벤트
+    auth_error: (error: { message: string }) => void; // 🔥 인증 에러 이벤트
   }
   
   // 클라이언트 -> 서버 이벤트 정의 (현재 필요 없는 이벤트 제거)
