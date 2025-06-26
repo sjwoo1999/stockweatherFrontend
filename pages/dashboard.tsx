@@ -6,17 +6,17 @@ import Head from 'next/head';
 import Image from 'next/image';
 import { FaSearch, FaArrowRight, FaTimesCircle } from 'react-icons/fa';
 import axios from 'axios';
-
+import { useSocket } from '../contexts/SocketContext';
+import axiosInstance from '../api/axiosInstance';
+import { getJwtToken, deleteCookie } from '../utils/cookieUtils';
 import {
   SuggestedStock,
   User,
   AnalysisProgressData,
   StockWeatherResponseDto // 수정된 StockWeatherResponseDto 사용
 } from '../types/stock';
-import { useSocket } from '../contexts/SocketContext';
 import { searchStock, fetchStockSuggestions } from '../services/stockService';
 import LoadingSpinner from '../components/LoadingSpinner';
-import axiosInstance from '../api/axiosInstance';
 import { waitForSocketConnection, isSocketHealthy } from '../libs/socketUtils'; // 🔥 새로운 유틸리티 import
 import SocketStatusMonitor from '../components/SocketStatusMonitor'; // 🔥 소켓 상태 모니터 추가
 
@@ -69,7 +69,7 @@ function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem('jwtToken');
+    const token = getJwtToken();
     if (!token) {
       router.replace('/login');
       return;
@@ -251,7 +251,7 @@ function DashboardPage() {
   }, [socket, handleProcessingComplete]);
 
   const handleLogout = () => {
-    localStorage.removeItem('jwtToken');
+    deleteCookie('jwtToken');
     const KAKAO_LOGOUT_REDIRECT_URI = process.env.NEXT_PUBLIC_KAKAO_LOGOUT_REDIRECT_URI || 'http://localhost:3001/login';
     const KAKAO_AUTH_LOGOUT_URL = `https://kauth.kakao.com/oauth/logout?client_id=${process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID}&logout_redirect_uri=${encodeURIComponent(KAKAO_LOGOUT_REDIRECT_URI)}`;
     window.location.href = KAKAO_AUTH_LOGOUT_URL;

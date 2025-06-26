@@ -1,13 +1,14 @@
 // stockweather-frontend/src/pages/index.tsx
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { getJwtToken } from '../utils/cookieUtils';
 
 const HomePage = () => {
   const router = useRouter();
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('jwtToken');
+      const token = getJwtToken();
       if (token) {
         router.replace('/dashboard');
       } else {

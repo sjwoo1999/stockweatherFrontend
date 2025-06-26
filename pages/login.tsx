@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import Head from 'next/head';
 import Image, { ImageLoaderProps } from 'next/image';
 import { useRouter } from 'next/router';
+import { getJwtToken, deleteCookie } from '../utils/cookieUtils';
 
 // 커스텀 이미지 로더 함수 정의 (변경 없음)
 const kakaoImageLoader = ({ src }: ImageLoaderProps) => {
@@ -30,10 +31,10 @@ function LoginPage() {
         // console.log('1. LoginPage: 페이지 로드 시점');
         
         // 기존 JWT 토큰 초기화 (디버깅용)
-        localStorage.removeItem('jwtToken');
+        deleteCookie('jwtToken');
         
-        const token = localStorage.getItem('jwtToken');
-        // console.log('2. LoginPage: localStorage 토큰 확인 결과:', token ? '존재함 (값: ' + token.substring(0, 30) + '...)' : '없음');
+        const token = getJwtToken();
+        // console.log('2. LoginPage: cookie 토큰 확인 결과:', token ? '존재함 (값: ' + token.substring(0, 30) + '...)' : '없음');
 
         if (token) {
           // console.log('3. LoginPage: 토큰이 존재하여 대시보드로 리다이렉트합니다.');

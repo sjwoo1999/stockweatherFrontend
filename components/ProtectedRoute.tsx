@@ -1,6 +1,7 @@
 // stockweather-frontend/src/components/ProtectedRoute.tsx
 import { useRouter } from 'next/router';
 import { useEffect, useState, ReactNode } from 'react';
+import { getJwtToken } from '../utils/cookieUtils';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -20,7 +21,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       return;
     }
 
-    const token = localStorage.getItem('jwtToken');
+    const token = getJwtToken();
     // console.log('ProtectedRoute: Checking for token. Current token:', token ? '존재함' : '없음', 'on path:', router.pathname);
 
     // ⭐ PUBLIC_PATHS를 사용합니다. ⭐

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { getJwtToken, deleteCookie } from '../utils/cookieUtils';
 
 import {
   ServerToClientEvents,
@@ -35,7 +36,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const createSocketConnection = () => {
     if (typeof window === 'undefined') return null;
 
-    const storedToken = localStorage.getItem('jwtToken');
+    const storedToken = getJwtToken();
     if (!storedToken) return null;
 
     // JWT 토큰 형식 검증 (Bearer 접두사 제거)
@@ -64,7 +65,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const storedToken = localStorage.getItem('jwtToken');
+    const storedToken = getJwtToken();
 
     if (!storedToken) {
       console.log('[Socket.IO] JWT 토큰이 없습니다. 로그인이 필요합니다.');
@@ -166,7 +167,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       if (err.message.includes('Invalid or expired token') || err.message.includes('auth_error')) {
         console.error('[Socket.IO] JWT 인증 실패. 로그인이 필요합니다.');
         // JWT 토큰 제거하고 로그인 페이지로 리다이렉트
-        localStorage.removeItem('jwtToken');
+        deleteCookie('jwtToken');
         if (typeof window !== 'undefined') {
           window.location.href = '/login';
         }

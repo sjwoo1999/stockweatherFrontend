@@ -1,6 +1,7 @@
 // stockweather-frontend/src/pages/login-success.tsx
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { setCookie } from '../utils/cookieUtils';
 
 function LoginSuccessPage() {
   const router = useRouter();
@@ -18,15 +19,16 @@ function LoginSuccessPage() {
 
     if (token && typeof token === 'string') {
       try {
-        localStorage.setItem('jwtToken', token);
-        // console.log('LoginSuccess: JWT Token stored in localStorage.');
-        // console.log('LoginSuccess: Verifying localStorage AFTER set:', localStorage.getItem('jwtToken'));
+        // 쿠키에 JWT 토큰 저장 (7일간 유효)
+        setCookie('jwtToken', token, 7);
+        // console.log('LoginSuccess: JWT Token stored in cookie.');
+        // console.log('LoginSuccess: Verifying cookie AFTER set:', document.cookie);
 
         // setTimeout 제거, 바로 리다이렉트
         router.replace('/dashboard'); 
 
       } catch (_e) {
-        // console.error('LoginSuccess: Error setting localStorage:', e);
+        // console.error('LoginSuccess: Error setting cookie:', e);
         router.replace('/login');
       }
     } else {
